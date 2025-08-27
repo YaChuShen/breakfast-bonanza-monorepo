@@ -27,6 +27,6 @@ app.get("/test-db", async (_req, res) => {
   res.json({ data });
 });
 
-app.listen(process.env.PORT || 3000, () => {
-  console.log("API running on port", process.env.PORT || 3000);
+app.listen(process.env.PORT || 3002, () => {
+  console.log("API running on port", process.env.PORT || 3002);
 });
