@@ -1,0 +1,19 @@
+{
+  "extends": [
+    "next/core-web-vitals"
+  ],
+  "rules": {
+    "no-undef": "error",
+    "react/display-name": "off"
+  },
+  "globals": {
+    "Promise": true
+  },
+  // "plugins": [
+  //   ""
+  // ],
+  "env": {
+    "jest": true
+  }
+  
+}
