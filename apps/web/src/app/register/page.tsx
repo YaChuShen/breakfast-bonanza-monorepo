@@ -1,26 +1,26 @@
 'use client';
 
-import React, { useState } from 'react';
 import {
-  HStack,
-  Text,
-  VStack,
   Button,
+  HStack,
   Input,
-  Stack,
   InputGroup,
   InputRightElement,
+  Stack,
+  Text,
+  VStack,
 } from '@chakra-ui/react';
-import { signIn } from 'next-auth/react';
-import { useForm, SubmitHandler } from 'react-hook-form';
-import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import CustomContainer from 'Components/CustomContainer';
 import {
   emailMessage,
   passwordMessage,
 } from 'contents/emailPasswordErrorMessage';
-import CustomContainer from 'Components/CustomContainer';
 import { trackEvent } from 'lib/mixpanel';
+import { signIn } from 'next-auth/react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useState } from 'react';
+import { SubmitHandler, useForm } from 'react-hook-form';
 
 type Inputs = {
   email: string;
@@ -28,13 +28,16 @@ type Inputs = {
   name: string;
 };
 
-const Page = () => {
+const RegisterForm = ({
+  source,
+  score,
+}: {
+  source: string | null;
+  score: string | null;
+}) => {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [show, setShow] = useState(false);
   const handleClick = () => setShow(!show);
-  const source = searchParams?.get('source') ?? null;
-  const score = searchParams?.get('score') ?? null;
   const [loading, setLoading] = useState(false);
 
   const {
@@ -44,7 +47,6 @@ const Page = () => {
   } = useForm<Inputs>();
 
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
-
     setLoading(true);
 
     const res = await fetch('/api/auth/register', {
@@ -55,7 +57,6 @@ const Page = () => {
       body: JSON.stringify({ data }),
     });
 
-    
     try {
       if (res.ok) {
         trackEvent('Registration Successful', {
@@ -65,29 +66,26 @@ const Page = () => {
           email: data.email,
           name: data.name || '',
         });
-      }
-      else {
+      } else {
         trackEvent('Registration Failed', {
           timestamp: new Date().toISOString(),
           registrationSource: source || 'direct',
-          error: await res.text()
+          error: await res.text(),
         });
       }
     } catch (error) {
       console.error('Failed to track event:', error);
     }
-  
 
     const userInfo = await res.json();
 
     signIn('credentials', {
       ...userInfo,
       callbackUrl: '/',
-    })
-      .catch((error) => {
-        router.push('/');
-        console.log(error);
-      });
+    }).catch((error) => {
+      router.push('/');
+      console.log(error);
+    });
     setLoading(false);
   };
 
@@ -140,11 +138,13 @@ const Page = () => {
             </Button>
           </VStack>
           <VStack py="2" alignItems="start">
-          {errors.name && (
-            <Text fontSize="14px" color="red.600">
-              {errors.name.type === 'required' ? 'Name is required' : 'Name must be less than 12 characters'}
-            </Text>
-          )}
+            {errors.name && (
+              <Text fontSize="14px" color="red.600">
+                {errors.name.type === 'required'
+                  ? 'Name is required'
+                  : 'Name must be less than 12 characters'}
+              </Text>
+            )}
             {errors.password && (
               <Text fontSize="14px" color="red.600">
                 {passwordMessage[errors.password.type ?? '']}
@@ -172,6 +172,22 @@ const Page = () => {
         </HStack>
       </Stack>
     </CustomContainer>
+  );
+};
+
+const SearchParamsWrapper = () => {
+  const searchParams = useSearchParams();
+  const source = searchParams?.get('source') ?? null;
+  const score = searchParams?.get('score') ?? null;
+
+  return <RegisterForm source={source} score={score} />;
+};
+
+const Page = () => {
+  return (
+    <Suspense fallback={null}>
+      <SearchParamsWrapper />
+    </Suspense>
   );
 };
 
