@@ -9,9 +9,7 @@
   "globals": {
     "Promise": true
   },
-  // "plugins": [
-  //   ""
-  // ],
+
   "env": {
     "jest": true
   }
