@@ -34,10 +34,10 @@ export const NextAuthOptions = NextAuth({
       async authorize(credentials) {
         const { password, email } = credentials;
 
-        // 查詢用戶
+        // 查詢用戶 - 只選取需要的欄位
         const { data: user, error } = await supabase
           .from('users')
-          .select('*')
+          .select('id, email, password')
           .eq('email', email)
           .single();
 

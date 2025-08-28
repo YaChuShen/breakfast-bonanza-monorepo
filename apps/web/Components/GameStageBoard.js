@@ -1,17 +1,17 @@
 'use client';
 
-import { AnimatePresence } from 'framer-motion';
-import React, { useEffect, useState } from 'react';
+import { Box } from '@chakra-ui/react';
 import BeginBoard from 'Components/BeginBoard';
 import EndBoard from 'Components/EndBoard';
+import { AnimatePresence } from 'framer-motion';
 import useExpiryTimer from 'hooks/useExpiryTimer';
-import ScoreSection from './ScoreSection';
-import { selectGameConfig } from 'store/features/gameConfigSlice';
+import { useEffect, useState } from 'react';
 import { useSelector } from 'react-redux';
-import ReadyStartBoard from './ReadyStartBoard';
+import { selectGameConfig } from 'store/features/gameConfigSlice';
 import { dispatchAction } from '../helpers/dispatchAction';
-import { Box } from '@chakra-ui/react';
 import Loading from './Loading';
+import ReadyStartBoard from './ReadyStartBoard';
+import ScoreSection from './ScoreSection';
 
 const GameStageBoard = ({ session, score, isLevel2 }) => {
   const { seconds, minutes, isRunning, timerStart } = useExpiryTimer();
