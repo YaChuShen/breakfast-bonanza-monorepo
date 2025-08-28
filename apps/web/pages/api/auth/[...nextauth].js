@@ -1,12 +1,16 @@
-import NextAuth from 'next-auth';
-import { FirestoreAdapter } from '@auth/firebase-adapter';
-import GoogleProvider from 'next-auth/providers/google';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { db } from '../../../firebase.config';
-import * as firestoreFunctions from 'firebase/firestore';
-import admin from '../../../functions/admin';
+import { SupabaseAdapter } from '@auth/supabase-adapter';
+import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import NextAuth from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY
+);
 
 export const NextAuthOptions = NextAuth({
   session: {
@@ -24,23 +28,22 @@ export const NextAuthOptions = NextAuth({
         email: {
           label: 'Email',
           type: 'text',
-          // placeholder: "your cool email",
         },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        const db = admin.firestore();
         const { password, email } = credentials;
 
-        const userRef = await db
-          .collection('users')
-          .where('email', '==', email)
-          .get();
+        // 查詢用戶
+        const { data: user, error } = await supabase
+          .from('users')
+          .select('*')
+          .eq('email', email)
+          .single();
 
-        if (!userRef.docs.length) return { error: 'no user' };
-        // added JET token here
-        const user = userRef.docs[0].data();
-        const isValid = await bcrypt.compare(password, user?.password);
+        if (error || !user) return { error: 'no user' };
+
+        const isValid = await bcrypt.compare(password, user.password);
         if (!isValid) {
           return { error: 'password error' };
         }
@@ -51,7 +54,7 @@ export const NextAuthOptions = NextAuth({
         const token = jwt.sign(
           {
             email: user.email,
-            profileId: userRef.docs[0]?.id,
+            id: user.id,
           },
           process.env.NEXTAUTH_SECRET,
           { expiresIn: '3d' }
@@ -59,8 +62,7 @@ export const NextAuthOptions = NextAuth({
 
         return {
           ...user,
-          profileId: userRef.docs[0]?.id,
-          accessToken: token,
+          token,
         };
       },
     }),
@@ -80,7 +82,11 @@ export const NextAuthOptions = NextAuth({
     }),
   ],
 
-  adapter: FirestoreAdapter({ db: db, ...firestoreFunctions }),
+  adapter: SupabaseAdapter({
+    url: process.env.NEXT_PUBLIC_SUPABASE_URL,
+    secret: process.env.NEXT_PUBLIC_SUPABASE_SERVICE_ROLE_KEY,
+    schema: 'next_auth',
+  }),
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     jwt: async ({ token, user }) => {
@@ -92,8 +98,6 @@ export const NextAuthOptions = NextAuth({
           iat: now,
           expjwt: now + 60 * 60 * 24 * 1,
         };
-        token.profileId = user.id ?? user?.profileId;
-        delete token.id;
       }
       return token;
     },
