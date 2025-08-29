@@ -44,6 +44,7 @@ const schema = buildSchema(`
     lastplaytime: String
     created_at: String!
     updated_at: String!
+    isfinishedtour: Boolean!
     # 🎯 關聯欄位：完整的遊戲歷史記錄
     scores: [Score!]!           # 此用戶的所有分數記錄
   }
@@ -91,6 +92,7 @@ const schema = buildSchema(`
   type Mutation {
     register(name: String!, email: String!, password: String!): RegisterResponse!
     addScore(userId: ID!, score: Int!, timerStatus: String!): Boolean!
+    finishTour(profileId: ID!): Boolean!
     updateLeaderboard(
       profileId: ID!, 
       score: Int!, 
@@ -173,6 +175,16 @@ const root = {
       console.error("Registration error:", error);
       throw new Error(`註冊失敗: ${error.message}`);
     }
+  },
+
+  finishTour: async ({ profileId }) => {
+    const { error } = await supabase
+      .from("user_profiles")
+      .update({ isfinishedtour: true })
+      .eq("id", profileId);
+
+    if (error) throw new Error(`更新用戶狀態失敗: ${error.message}`);
+    return true;
   },
 
   // 查詢用戶（包含分數統計）

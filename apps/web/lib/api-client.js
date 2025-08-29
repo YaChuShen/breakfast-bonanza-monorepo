@@ -52,6 +52,15 @@ class GraphQLClient {
     });
   }
 
+  async tour(profileId) {
+    const mutation = `
+      mutation FinishTour($profileId: ID!) {
+        finishTour(profileId: $profileId)
+      }
+    `;
+    return this.query(mutation, { profileId });
+  }
+
   // 遊戲相關 GraphQL 查詢
   async getUser(email) {
     const query = `

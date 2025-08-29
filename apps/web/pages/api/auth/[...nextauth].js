@@ -40,7 +40,9 @@ export const NextAuthOptions = NextAuth({
 
         const { data: user } = await supabase
           .from('user_profiles')
-          .select('id, email')
+          .select(
+            'id, email, avatar_url, islevel2, highest_score, latest_score, total_games, total_score, lastplaytime'
+          )
           .eq('email', email)
           .single();
 
@@ -73,7 +75,14 @@ export const NextAuthOptions = NextAuth({
         return {
           id: user.id,
           email: user.email,
-          name: user.name,
+          name: user.email, // 使用 email 作為 name，因為資料庫沒有單獨的 name 字段
+          avatar_url: user.avatar_url,
+          islevel2: user.islevel2,
+          highest_score: user.highest_score,
+          latest_score: user.latest_score,
+          total_games: user.total_games,
+          total_score: user.total_score,
+          lastplaytime: user.lastplaytime,
           token,
         };
       },
