@@ -32,24 +32,34 @@ export const NextAuthOptions = NextAuth({
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
+        if (!credentials) {
+          return null;
+        }
+
         const { password, email } = credentials;
 
-        // 查詢用戶 - 只選取需要的欄位
-        const { data: user, error } = await supabase
-          .from('users')
-          .select('id, email, password')
+        const { data: user } = await supabase
+          .from('user_profiles')
+          .select('id, email')
           .eq('email', email)
           .single();
 
-        if (error || !user) return { error: 'no user' };
+        const { data: userCredentials } = await supabase
+          .from('user_credentials')
+          .select('password_hash')
+          .eq('user_id', user.id)
+          .single();
 
-        const isValid = await bcrypt.compare(password, user.password);
+        const isValid = await bcrypt.compare(
+          password,
+          userCredentials.password_hash
+        );
         if (!isValid) {
-          return { error: 'password error' };
+          console.log('Invalid password');
+          return null;
         }
 
-        console.log('Successful login');
-        delete user.password;
+        console.log('Successful login for user:', user.email);
 
         const token = jwt.sign(
           {
@@ -61,7 +71,9 @@ export const NextAuthOptions = NextAuth({
         );
 
         return {
-          ...user,
+          id: user.id,
+          email: user.email,
+          name: user.name,
           token,
         };
       },
@@ -105,21 +117,11 @@ export const NextAuthOptions = NextAuth({
       return { ...session, ...token };
     },
     async signIn({ user }) {
-      if (user?.error === 'password error') {
-        throw new Error(
-          'The password you entered is incorrect. Please try again.'
-        );
-      }
-      if (user?.error === 'no user') {
-        throw new Error(
-          'No account found with that email. Please check your email or register.'
-        );
-      }
-      return true;
+      return !!user;
     },
   },
 });
 
-export default async function handler(...params) {
-  await NextAuthOptions(...params);
+export default function handler(...params) {
+  return NextAuthOptions(...params);
 }

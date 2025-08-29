@@ -15,6 +15,7 @@ import {
   emailMessage,
   passwordMessage,
 } from 'contents/emailPasswordErrorMessage';
+import apiClient from 'lib/api-client';
 import { trackEvent } from 'lib/mixpanel';
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
@@ -39,6 +40,7 @@ const RegisterForm = ({
   const [show, setShow] = useState(false);
   const handleClick = () => setShow(!show);
   const [loading, setLoading] = useState(false);
+  const [registerError, setRegisterError] = useState<string | null>(null);
 
   const {
     register,
@@ -48,45 +50,52 @@ const RegisterForm = ({
 
   const onSubmit: SubmitHandler<Inputs> = async (data) => {
     setLoading(true);
-
-    const res = await fetch('/api/auth/register', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ data }),
-    });
+    setRegisterError(null);
 
     try {
-      if (res.ok) {
-        trackEvent('Registration Successful', {
-          timestamp: new Date().toISOString(),
-          registrationSource: source || 'direct',
-          score: score || undefined,
-          email: data.email,
-          name: data.name || '',
-        });
+      const res = await apiClient.register({
+        name: data.name,
+        email: data.email,
+        password: data.password,
+      });
+
+      console.log('res', res);
+
+      if (!res.register.success) {
+        setRegisterError(res.register.message || '註冊失敗，請重試');
+        setLoading(false);
+        return;
+      }
+
+      trackEvent('Registration Successful', {
+        timestamp: new Date().toISOString(),
+        registrationSource: source || 'direct',
+        score: score || undefined,
+        email: data.email,
+        name: data.name || '',
+      });
+
+      const result = await signIn('credentials', {
+        email: res.register.email,
+        password: res.register.password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        console.log('Login after registration failed:', result.error);
+        setRegisterError('註冊成功！請前往登入頁面使用您的帳戶登入。');
+        setTimeout(() => {
+          router.push('/auth/signin');
+        }, 2000);
       } else {
-        trackEvent('Registration Failed', {
-          timestamp: new Date().toISOString(),
-          registrationSource: source || 'direct',
-          error: await res.text(),
-        });
+        router.push('/');
       }
     } catch (error) {
-      console.error('Failed to track event:', error);
+      console.error('Registration error:', error);
+      setRegisterError(error.message);
+    } finally {
+      setLoading(false);
     }
-
-    const userInfo = await res.json();
-
-    signIn('credentials', {
-      ...userInfo,
-      callbackUrl: '/',
-    }).catch((error) => {
-      router.push('/');
-      console.log(error);
-    });
-    setLoading(false);
   };
 
   const onError = (errors: any) => {
@@ -153,6 +162,17 @@ const RegisterForm = ({
             {errors.email && (
               <Text fontSize="14px" color="red.600">
                 {emailMessage[errors.email.type ?? '']}
+              </Text>
+            )}
+            {registerError && (
+              <Text
+                fontSize="14px"
+                color={
+                  registerError.includes('註冊成功') ? 'green.600' : 'red.600'
+                }
+                fontWeight="medium"
+              >
+                {registerError}
               </Text>
             )}
           </VStack>

@@ -32,6 +32,26 @@ class GraphQLClient {
     return result.data;
   }
 
+  async register(input) {
+    const mutation = `
+      mutation Register($name: String!, $email: String!, $password: String!) {
+        register(name: $name, email: $email, password: $password) {
+          id
+          email
+          name
+          success
+          message
+          password
+        }
+      }
+    `;
+    return this.query(mutation, {
+      name: input.name,
+      email: input.email,
+      password: input.password,
+    });
+  }
+
   // 遊戲相關 GraphQL 查詢
   async getUser(email) {
     const query = `

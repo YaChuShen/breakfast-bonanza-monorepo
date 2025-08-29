@@ -16,7 +16,16 @@ CREATE TABLE IF NOT EXISTS public.user_profiles (
     latest_score INTEGER DEFAULT 0,      -- 最新分數
     total_games INTEGER DEFAULT 0,       -- 總遊戲次數
     total_score INTEGER DEFAULT 0,       -- 總累積分數
-    lastPlayTime TIMESTAMPTZ,
+    lastplaytime TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 用戶密碼表（為 credentials 登入儲存密碼）
+CREATE TABLE IF NOT EXISTS public.user_credentials (
+    id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
+    user_id UUID REFERENCES public.user_profiles(id) ON DELETE CASCADE,
+    password_hash TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -57,6 +66,7 @@ CREATE TABLE IF NOT EXISTS public.user_tour_status (
 
 -- 索引優化
 CREATE INDEX IF NOT EXISTS idx_user_profiles_email ON public.user_profiles(email);
+CREATE INDEX IF NOT EXISTS idx_user_credentials_user_id ON public.user_credentials(user_id);
 CREATE INDEX IF NOT EXISTS idx_scores_user_id ON public.scores(user_id);
 CREATE INDEX IF NOT EXISTS idx_scores_score_desc ON public.scores(score DESC);
 CREATE INDEX IF NOT EXISTS idx_scores_time_desc ON public.scores(time DESC);
@@ -65,6 +75,7 @@ CREATE INDEX IF NOT EXISTS idx_leaderboard_updated_at ON public.leaderboard(upda
 
 -- Row Level Security (RLS) 設定
 ALTER TABLE public.user_profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_credentials ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.scores ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.leaderboard ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.rankings ENABLE ROW LEVEL SECURITY;
@@ -77,6 +88,10 @@ CREATE POLICY "Users can view own profile" ON public.user_profiles
 
 CREATE POLICY "Users can update own profile" ON public.user_profiles
     FOR UPDATE USING (auth.uid()::text = id::text);
+
+-- 密碼記錄：只有服務角色可以存取（安全考量）
+CREATE POLICY "Service role can manage credentials" ON public.user_credentials
+    FOR ALL USING (auth.role() = 'service_role');
 
 -- 分數記錄：用戶只能查看自己的分數，但可以插入新分數
 CREATE POLICY "Users can view own scores" ON public.scores
@@ -114,6 +129,9 @@ END;
 $$ language 'plpgsql';
 
 CREATE TRIGGER update_user_profiles_updated_at BEFORE UPDATE ON public.user_profiles
+    FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+CREATE TRIGGER update_user_credentials_updated_at BEFORE UPDATE ON public.user_credentials
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 CREATE TRIGGER update_leaderboard_updated_at BEFORE UPDATE ON public.leaderboard
@@ -192,7 +210,7 @@ BEGIN
         highest_score = GREATEST(COALESCE(current_highest, 0), p_score),
         total_games = COALESCE(current_games, 0) + 1,
         total_score = COALESCE(current_total, 0) + p_score,
-        lastPlayTime = NOW(),
+        lastplaytime = NOW(),
         updated_at = NOW()
     WHERE id = p_user_id;
 END;

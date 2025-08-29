@@ -1,7 +1,7 @@
-import admin from 'functions/admin';
-import { NextResponse } from 'next/server';
 import { LEVEL2_SCORE } from 'contents/rules';
+import admin from 'functions/admin';
 import { getServerSession } from 'next-auth';
+import { NextResponse } from 'next/server';
 import { NextAuthOptions } from 'pages/api/auth/[...nextauth]';
 
 export async function POST(request) {
@@ -45,7 +45,7 @@ export async function POST(request) {
         .doc(profileId)
         .update({
           score: admin.firestore.FieldValue.arrayUnion(newScoreRecord),
-          lastPlayTime: admin.firestore.FieldValue.serverTimestamp(),
+          lastplaytime: admin.firestore.FieldValue.serverTimestamp(),
           isLevel2,
         });
       return NextResponse.json({

@@ -1,11 +1,26 @@
 // Express + GraphQL Server (強大版本)
 import { createClient } from "@supabase/supabase-js";
+import bcrypt from "bcrypt";
+import cors from "cors";
+import { randomUUID } from "crypto";
 import "dotenv/config";
 import express from "express";
 import { graphqlHTTP } from "express-graphql";
 import { buildSchema } from "graphql";
 
 const app = express();
+
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://breakfast-bonanza-monorepo-web.vercel.app/", // 如果有部署到 Vercel
+    ].filter(Boolean),
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 const supabase = createClient(
@@ -26,7 +41,7 @@ const schema = buildSchema(`
     total_games: Int!
     total_score: Int!
     average_score: Float        # 計算欄位：total_score / total_games
-    lastPlayTime: String
+    lastplaytime: String
     created_at: String!
     updated_at: String!
     # 🎯 關聯欄位：完整的遊戲歷史記錄
@@ -57,6 +72,15 @@ const schema = buildSchema(`
     updatedAt: String!
   }
 
+  type RegisterResponse {
+    id: ID!
+    email: String!
+    name: String!
+    success: Boolean!
+    message: String
+    password: String
+  }
+
   type Query {
     getUser(email: String!): User
     getUserScores(userId: ID!): [Score!]!
@@ -65,6 +89,7 @@ const schema = buildSchema(`
   }
 
   type Mutation {
+    register(name: String!, email: String!, password: String!): RegisterResponse!
     addScore(userId: ID!, score: Int!, timerStatus: String!): Boolean!
     updateLeaderboard(
       profileId: ID!, 
@@ -79,6 +104,77 @@ const schema = buildSchema(`
 
 // GraphQL Resolvers
 const root = {
+  register: async ({ name, email, password }) => {
+    try {
+      const { data: existingUser, error: checkError } = await supabase
+        .from("user_profiles")
+        .select("email")
+        .eq("email", email)
+        .single();
+
+      if (existingUser) {
+        throw new Error("此電子郵件已被註冊");
+      }
+
+      if (checkError && checkError.code !== "PGRST116") {
+        console.error("Error checking existing user:", checkError);
+        throw new Error("檢查用戶時發生錯誤");
+      }
+
+      // 密碼加密
+      const hashedPassword = bcrypt.hashSync(password, 12);
+      const userId = randomUUID();
+
+      // 在 next_auth.users 表中創建用戶
+      const { error: nextAuthError } = await supabase
+        .schema("next_auth")
+        .from("users")
+        .insert([
+          {
+            id: userId,
+            email: email,
+            name: name,
+            emailVerified: null,
+            image: null,
+          },
+        ])
+        .select()
+        .single();
+
+      if (nextAuthError) {
+        console.error("Error creating NextAuth user:", nextAuthError);
+        throw new Error("創建 NextAuth 用戶時發生錯誤");
+      }
+
+      // 存儲密碼hash
+      const { error: passwordError } = await supabase
+        .from("user_credentials")
+        .insert([
+          {
+            user_id: userId,
+            password_hash: hashedPassword,
+          },
+        ]);
+
+      if (passwordError) {
+        console.error("Error storing password:", passwordError);
+        throw new Error("存儲密碼時發生錯誤");
+      }
+
+      return {
+        id: userId,
+        email: email,
+        name: name,
+        success: true,
+        message: "註冊成功",
+        password: password,
+      };
+    } catch (error) {
+      console.error("Registration error:", error);
+      throw new Error(`註冊失敗: ${error.message}`);
+    }
+  },
+
   // 查詢用戶（包含分數統計）
   getUser: async ({ email }, context, info) => {
     const { data, error } = await supabase
