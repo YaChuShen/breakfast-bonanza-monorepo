@@ -73,7 +73,7 @@ export const NextAuthOptions = NextAuth({
         );
 
         return {
-          id: user.id,
+          profileId: user.id,
           email: user.email,
           name: user.email, // 使用 email 作為 name，因為資料庫沒有單獨的 name 字段
           avatar_url: user.avatar_url,

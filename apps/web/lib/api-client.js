@@ -61,6 +61,15 @@ class GraphQLClient {
     return this.query(mutation, { profileId });
   }
 
+  async addScore(userId, score, timerStatus) {
+    const mutation = `
+      mutation AddScore($userId: ID!, $score: Int!, $timerStatus: String!) {
+        addScore(userId: $userId, score: $score, timerStatus: $timerStatus)
+      }
+    `;
+    return this.query(mutation, { userId, score, timerStatus });
+  }
+
   // 遊戲相關 GraphQL 查詢
   async getUser(email) {
     const query = `
@@ -73,15 +82,6 @@ class GraphQLClient {
       }
     `;
     return this.query(query, { email });
-  }
-
-  async addScore(userId, score, timerStatus) {
-    const mutation = `
-      mutation AddScore($userId: ID!, $score: Int!, $timerStatus: String!) {
-        addScore(userId: $userId, score: $score, timerStatus: $timerStatus)
-      }
-    `;
-    return this.query(mutation, { userId, score, timerStatus });
   }
 
   async getCurrentRankings() {

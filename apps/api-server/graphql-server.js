@@ -187,6 +187,39 @@ const root = {
     return true;
   },
 
+  addScore: async ({ userId, score, timerStatus }) => {
+    if (timerStatus !== "end") {
+      throw new Error("遊戲狀態異常");
+    }
+
+    const { error: addScoreError } = await supabase.rpc(
+      "add_score_and_update_stats",
+      {
+        p_user_id: userId,
+        p_score: score,
+        p_time: Date.now(),
+      }
+    );
+
+    if (addScoreError)
+      throw new Error(`新增分數失敗: ${addScoreError.message}`);
+
+    const LEVEL2_SCORE = 1000;
+    const isLevel2 = score >= LEVEL2_SCORE;
+
+    const { error: updateError } = await supabase
+      .from("user_profiles")
+      .update({
+        islevel2: isLevel2,
+      })
+      .eq("id", userId);
+
+    if (updateError)
+      throw new Error(`更新用戶等級失敗: ${updateError.message}`);
+
+    return true;
+  },
+
   // 查詢用戶（包含分數統計）
   getUser: async ({ email }, context, info) => {
     const { data, error } = await supabase
@@ -265,43 +298,6 @@ const root = {
       score: entry.score,
       updatedAt: entry.updated_at,
     }));
-  },
-
-  // 🎯 新增分數（使用 SQL 函數自動更新統計）
-  addScore: async ({ userId, score, timerStatus }) => {
-    if (timerStatus !== "end") {
-      throw new Error("遊戲狀態異常");
-    }
-
-    // 使用 SQL 函數新增分數並自動更新統計
-    const { error: addScoreError } = await supabase.rpc(
-      "add_score_and_update_stats",
-      {
-        p_user_id: userId,
-        p_score: score,
-        p_time: Date.now(),
-      }
-    );
-
-    if (addScoreError)
-      throw new Error(`新增分數失敗: ${addScoreError.message}`);
-
-    // 檢查是否達到 Level 2
-    const LEVEL2_SCORE = 1000; // 或從環境變數讀取
-    const isLevel2 = score >= LEVEL2_SCORE;
-
-    // 只更新等級（統計數據已由 SQL 函數處理）
-    const { error: updateError } = await supabase
-      .from("user_profiles")
-      .update({
-        islevel2: isLevel2,
-      })
-      .eq("id", userId);
-
-    if (updateError)
-      throw new Error(`更新用戶等級失敗: ${updateError.message}`);
-
-    return true;
   },
 
   // 更新排行榜

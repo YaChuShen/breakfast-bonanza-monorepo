@@ -1,10 +1,18 @@
 'use client';
 
+import { once } from 'lodash';
 import mixpanel from 'mixpanel-browser';
 import { useSession } from 'next-auth/react';
 import { usePathname, useSearchParams } from 'next/navigation';
 import React, { Suspense, useEffect } from 'react';
 import { identifyUser, initMixpanel, trackEvent } from '../../lib/mixpanel';
+
+// 在組件外部定義，確保只創建一次
+const trackUserLoginOnce = once((email: string) => {
+  trackEvent('User Logged In', {
+    email: email,
+  });
+});
 
 function MixpanelTracker() {
   const { data: session, status } = useSession();
@@ -23,9 +31,7 @@ function MixpanelTracker() {
         $email: session.user.email,
         $name: session.user.name || '',
       });
-      trackEvent('User Logged In', {
-        email: session.user.email,
-      });
+      trackUserLoginOnce(session.user.email || 'UnknownUser');
     }
   }, [status, session]);
 
