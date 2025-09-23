@@ -1,18 +1,20 @@
 'use client';
 
-import { Button, VStack, HStack } from '@chakra-ui/react';
-import React, { useEffect } from 'react';
+import { Button, HStack, VStack } from '@chakra-ui/react';
 import { LEVEL2_SCORE } from 'contents/rules';
+import { once } from 'lodash';
+import { useEffect, useMemo, useRef } from 'react';
 
-import TotalScore from './endBoard/TotalScore';
-import LevelUp from './endBoard/LevelUp';
-import Leaderboard from './endBoard/Leaderboard';
-import { selectGameConfig } from 'store/features/gameConfigSlice';
-import { useSelector } from 'react-redux';
-import MotionBoard from './MotionBoard';
 import calculateRanking from 'helpers/calculateRanking';
+import graphqlClient from 'lib/api-client';
 import { trackEvent } from 'lib/mixpanel';
 import { useRouter } from 'next/navigation';
+import { useSelector } from 'react-redux';
+import { selectGameConfig } from 'store/features/gameConfigSlice';
+import Leaderboard from './endBoard/Leaderboard';
+import LevelUp from './endBoard/LevelUp';
+import TotalScore from './endBoard/TotalScore';
+import MotionBoard from './MotionBoard';
 import SignUpButton from './SignUpButton';
 
 const endBoardVariants = {
@@ -32,6 +34,7 @@ const EndBoard = ({
 }) => {
   const { timerStatus } = useSelector(selectGameConfig);
   const router = useRouter();
+  const scoreSubmittedRef = useRef(false);
 
   const { newLeaderboard, isTopFive } = calculateRanking(
     score,
@@ -40,62 +43,49 @@ const EndBoard = ({
     session?.user?.name
   );
 
+  const trackGameCompletion = useMemo(
+    () =>
+      once(() => {
+        trackEvent('Game Completion', {
+          timestamp: new Date().toISOString(),
+          score,
+          isUser: session?.profileId ? true : false,
+          isLevel2,
+          profileId: session?.profileId,
+        });
+      }),
+    []
+  );
+
   useEffect(() => {
-    const fetchData = async () => {
+    const addScore = async () => {
+      if (scoreSubmittedRef.current) {
+        console.log('Score already submitted, skipping...');
+        return;
+      }
+
       try {
-        const [pointsResult, leaderboardResult] = await Promise.allSettled([
-          fetch('/api/pointsTable', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              score: score ?? 0,
-              profileId: session?.profileId,
-              timerStatus,
-            }),
-          }),
-          fetch('/api/leaderboard', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              score: score ?? 0,
-              profileId: session?.profileId,
-              name: session?.name,
-              timerStatus,
-              timestamp: Date.now(),
-              newLeaderboard,
-            }),
-          }),
-        ]);
-
-        if (pointsResult.status === 'rejected') {
-          console.error('Points API failed:', pointsResult.reason);
-        }
-
-        if (leaderboardResult.status === 'fulfilled') {
-          const data = await leaderboardResult.value.json();
-          return data;
-        } else {
-          console.error('Leaderboard API failed:', leaderboardResult.reason);
-        }
+        scoreSubmittedRef.current = true;
+        await graphqlClient.addScore(session?.profileId, score, timerStatus);
+        console.log('Score submitted successfully');
       } catch (error) {
-        console.error('Error in fetchData:', error);
+        console.error('Error adding score:', error);
+        scoreSubmittedRef.current = false;
       }
     };
-    fetchData();
-  }, []);
+
+    if (
+      session?.profileId &&
+      score !== undefined &&
+      timerStatus === 'end' &&
+      !scoreSubmittedRef.current
+    ) {
+      addScore();
+    }
+  }, [session?.profileId, score, timerStatus]);
 
   useEffect(() => {
-    trackEvent('Game Completion', {
-      timestamp: new Date().toISOString(),
-      score,
-      isUser: session?.profileId ? true : false,
-      isLevel2,
-      profileId: session?.profileId,
-    });
+    trackGameCompletion();
   }, []);
 
   const showLevelUpMessege = score > LEVEL2_SCORE && !isLevel2;

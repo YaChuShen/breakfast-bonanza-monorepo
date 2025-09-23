@@ -1,29 +1,33 @@
-import admin from 'functions/admin';
-import HomePage from 'Components/HomePage';
-import NextAuthOptions from 'pages/api/auth/[...nextauth]';
+import HomePageProvider from 'Components/HomePageProvider';
+import { graphqlClient } from 'lib/api-client';
+import { NextAuthOptions } from 'pages/api/auth/[...nextauth]';
 const { getServerSession } = require('next-auth');
 
 const Page = async () => {
   const userSession = await getServerSession(NextAuthOptions);
 
-  const db = admin.firestore();
   let data;
   let profileId;
-  const profieQuery = await db
-    .collection('users')
-    .where('email', '==', userSession?.user?.email ?? '')
-    .get();
-  if (profieQuery.size) {
-    data = profieQuery.docs[0].data();
-    profileId = profieQuery.docs[0].id;
+  // 使用 GraphQL 查詢用戶資料
+  if (userSession?.user?.email) {
+    try {
+      const result = await graphqlClient.getUser(userSession.user.email);
+      data = result.getUser;
+      profileId = data?.id;
+
+      if (!profileId) {
+        console.warn('警告: profileId 為空，用戶可能未在資料庫中註冊');
+      }
+    } catch (error) {
+      console.error('GraphQL 查詢失敗:', error);
+      console.error('錯誤詳情:', error.message);
+      // 如果 GraphQL 查詢失敗，data 和 profileId 保持 undefined
+    }
+  } else {
+    console.log('沒有用戶會話或電子郵件');
   }
 
-  return (
-    <HomePage
-      dbData={JSON.parse(JSON.stringify(data ?? {}) ?? {})}
-      profileId={profileId}
-    />
-  );
+  return <HomePageProvider dbData={userSession} profileId={profileId} />;
 };
 
 export default Page;

@@ -1,11 +1,10 @@
 'use client';
-import React from 'react';
 
 import { Image, Text, VStack } from '@chakra-ui/react';
 import { useDispatch } from 'react-redux';
 import { timerStatus } from 'store/features/gameConfigSlice';
-import MotionBoard from './MotionBoard';
 import AuthSection from './AuthSection';
+import MotionBoard from './MotionBoard';
 import StartButton from './StartButton';
 
 const ReadyStartBoard = ({ session, timerStart }) => {
@@ -24,7 +23,7 @@ const ReadyStartBoard = ({ session, timerStart }) => {
                 {session?.user?.name}
               </Text>
             </Text>
-            <Text>Press Start to begin the timer!</Text>
+            <Text>Press Start to begin !</Text>
           </VStack>
         ) : (
           <VStack textAlign="center">

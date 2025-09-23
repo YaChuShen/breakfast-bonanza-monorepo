@@ -1,9 +1,9 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { TourProvider, useTour, components } from '@reactour/tour';
+import { Button, Icon, Text, VStack } from '@chakra-ui/react';
+import { components, TourProvider, useTour } from '@reactour/tour';
+import graphqlClient from 'lib/api-client';
+import { useEffect } from 'react';
+import { HiArrowSmLeft, HiArrowSmRight } from 'react-icons/hi';
 import { RxCross2 } from 'react-icons/rx';
-import { Icon, Button, Text, useEditable, Box, VStack } from '@chakra-ui/react';
-import { HiArrowSmRight, HiArrowSmLeft } from 'react-icons/hi';
-import postMethod from 'helpers/postMethod';
 import { useDispatch } from 'react-redux';
 import { timerStatus } from 'store/features/gameConfigSlice';
 
@@ -14,7 +14,7 @@ const CheckAlreadyRead = () => {
     if (window && sessionStorage.getItem('isTour')) {
       setIsOpen(false);
     }
-  }, []);
+  }, [setIsOpen]);
 };
 
 function Badge({ children }) {
@@ -57,14 +57,22 @@ const Tour = ({ children, profileId }) => {
   const dispatch = useDispatch();
 
   const onClickStartGame = async () => {
-    await postMethod({
-      path: '/api/tour',
-      data: {
-        profileId,
-      },
-    });
-    window.sessionStorage.setItem('isTour', true);
-    dispatch(timerStatus({ status: 'readyStarting' }));
+    if (!profileId) {
+      console.error('ProfileId is missing, cannot complete tour');
+      window.sessionStorage.setItem('isTour', true);
+      dispatch(timerStatus({ status: 'readyStarting' }));
+      return;
+    }
+
+    try {
+      await graphqlClient.tour(profileId);
+      window.sessionStorage.setItem('isTour', true);
+      dispatch(timerStatus({ status: 'readyStarting' }));
+    } catch (error) {
+      console.error('Failed to complete tour:', error);
+      window.sessionStorage.setItem('isTour', true);
+      dispatch(timerStatus({ status: 'readyStarting' }));
+    }
   };
 
   const steps = [

@@ -1,12 +1,16 @@
-import NextAuth from 'next-auth';
-import { FirestoreAdapter } from '@auth/firebase-adapter';
-import GoogleProvider from 'next-auth/providers/google';
-import CredentialsProvider from 'next-auth/providers/credentials';
-import { db } from '../../../firebase.config';
-import * as firestoreFunctions from 'firebase/firestore';
-import admin from '../../../functions/admin';
+import { SupabaseAdapter } from '@auth/supabase-adapter';
+import { createClient } from '@supabase/supabase-js';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
+import NextAuth from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
+import GoogleProvider from 'next-auth/providers/google';
+
+// Initialize Supabase client
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+);
 
 export const NextAuthOptions = NextAuth({
   session: {
@@ -24,43 +28,62 @@ export const NextAuthOptions = NextAuth({
         email: {
           label: 'Email',
           type: 'text',
-          // placeholder: "your cool email",
         },
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        const db = admin.firestore();
-        const { password, email } = credentials;
-
-        const userRef = await db
-          .collection('users')
-          .where('email', '==', email)
-          .get();
-
-        if (!userRef.docs.length) return { error: 'no user' };
-        // added JET token here
-        const user = userRef.docs[0].data();
-        const isValid = await bcrypt.compare(password, user?.password);
-        if (!isValid) {
-          return { error: 'password error' };
+        if (!credentials) {
+          return null;
         }
 
-        console.log('Successful login');
-        delete user.password;
+        const { password, email } = credentials;
+
+        const { data: user } = await supabase
+          .from('user_profiles')
+          .select(
+            'id, email, avatar_url, islevel2, highest_score, latest_score, total_games, total_score, lastplaytime'
+          )
+          .eq('email', email)
+          .single();
+
+        const { data: userCredentials } = await supabase
+          .from('user_credentials')
+          .select('password_hash')
+          .eq('user_id', user.id)
+          .single();
+
+        const isValid = await bcrypt.compare(
+          password,
+          userCredentials.password_hash
+        );
+        if (!isValid) {
+          console.log('Invalid password');
+          return null;
+        }
+
+        console.log('Successful login for user:', user.email);
 
         const token = jwt.sign(
           {
             email: user.email,
-            profileId: userRef.docs[0]?.id,
+            id: user.id,
           },
           process.env.NEXTAUTH_SECRET,
           { expiresIn: '3d' }
         );
 
         return {
-          ...user,
-          profileId: userRef.docs[0]?.id,
-          accessToken: token,
+          profileId: user.id,
+          email: user.email,
+          name: user.email, // 使用 email 作為 name，因為資料庫沒有單獨的 name 字段
+          avatar_url: user.avatar_url,
+          islevel2: user.islevel2,
+          highest_score: user.highest_score,
+          latest_score: user.latest_score,
+          total_games: user.total_games,
+          total_score: user.total_score,
+          lastplaytime: user.lastplaytime,
+          token,
         };
       },
     }),
@@ -80,7 +103,11 @@ export const NextAuthOptions = NextAuth({
     }),
   ],
 
-  adapter: FirestoreAdapter({ db: db, ...firestoreFunctions }),
+  adapter: SupabaseAdapter({
+    url: process.env.SUPABASE_URL,
+    secret: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    schema: 'next_auth',
+  }),
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
     jwt: async ({ token, user }) => {
@@ -92,8 +119,6 @@ export const NextAuthOptions = NextAuth({
           iat: now,
           expjwt: now + 60 * 60 * 24 * 1,
         };
-        token.profileId = user.id ?? user?.profileId;
-        delete token.id;
       }
       return token;
     },
@@ -101,21 +126,11 @@ export const NextAuthOptions = NextAuth({
       return { ...session, ...token };
     },
     async signIn({ user }) {
-      if (user?.error === 'password error') {
-        throw new Error(
-          'The password you entered is incorrect. Please try again.'
-        );
-      }
-      if (user?.error === 'no user') {
-        throw new Error(
-          'No account found with that email. Please check your email or register.'
-        );
-      }
-      return true;
+      return !!user;
     },
   },
 });
 
-export default async function handler(...params) {
-  await NextAuthOptions(...params);
+export default function handler(...params) {
+  return NextAuthOptions(...params);
 }
