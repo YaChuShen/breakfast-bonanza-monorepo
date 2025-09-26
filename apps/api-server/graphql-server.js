@@ -33,8 +33,10 @@ const schema = buildSchema(`
   type User {
     id: ID!
     email: String!
+    name: String                # 用戶顯示名稱
     avatar_url: String
     islevel2: Boolean!
+    isfinishedtour: Boolean!
     # 🎯 分數統計欄位（直接從 user_profiles 取得，提升查詢效能）
     highest_score: Int!
     latest_score: Int!
@@ -44,7 +46,6 @@ const schema = buildSchema(`
     lastplaytime: String
     created_at: String!
     updated_at: String!
-    isfinishedtour: Boolean!
     # 🎯 關聯欄位：完整的遊戲歷史記錄
     scores: [Score!]!           # 此用戶的所有分數記錄
   }
@@ -154,6 +155,29 @@ const root = {
         throw new Error("創建 NextAuth 用戶時發生錯誤");
       }
 
+      // 在 user_profiles 表中創建用戶記錄
+      const { error: profileError } = await supabase
+        .from("user_profiles")
+        .insert([
+          {
+            id: userId,
+            email: email,
+            name: name,
+            avatar_url: null,
+            islevel2: false,
+            isfinishedtour: false,
+            highest_score: 0,
+            latest_score: 0,
+            total_games: 0,
+            total_score: 0,
+          },
+        ]);
+
+      if (profileError) {
+        console.error("Error creating user profile:", profileError);
+        throw new Error("創建用戶檔案時發生錯誤");
+      }
+
       // 存儲密碼hash
       const { error: passwordError } = await supabase
         .from("user_credentials")
@@ -211,10 +235,10 @@ const root = {
     if (addScoreError)
       throw new Error(`新增分數失敗: ${addScoreError.message}`);
 
-    // 獲取用戶名稱（email）用於排行榜
+    // 獲取用戶名稱用於排行榜
     const { data: userData, error: userError } = await supabase
       .from("user_profiles")
-      .select("email")
+      .select("name, email")
       .eq("id", userId)
       .single();
 
@@ -224,7 +248,7 @@ const root = {
     const { data: isTopFiveResult, error: leaderboardError } =
       await supabase.rpc("maintain_top5_leaderboard", {
         p_profile_id: userId,
-        p_name: userData.email,
+        p_name: userData.name || userData.email, // 優先使用 name，如果沒有則使用 email
         p_score: score,
       });
 
@@ -260,7 +284,9 @@ const root = {
       .from("user_profiles")
       .select(
         `
-        id, email, islevel2
+        id, email, name, avatar_url, islevel2, isfinishedtour,
+        highest_score, latest_score, total_games, total_score,
+        lastplaytime, created_at, updated_at
       `
       )
       .eq("email", email)
@@ -273,6 +299,7 @@ const root = {
       ...data,
       average_score:
         data.total_games > 0 ? data.total_score / data.total_games : 0,
+      scores: [], // 空陣列，如需要可以另外查詢
     };
 
     return userData;

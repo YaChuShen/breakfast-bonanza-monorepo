@@ -9,8 +9,10 @@ CREATE EXTENSION IF NOT EXISTS "pg_graphql";
 CREATE TABLE IF NOT EXISTS public.user_profiles (
     id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
+    name TEXT,                            -- 用戶顯示名稱
     avatar_url TEXT,
     islevel2 BOOLEAN DEFAULT false,
+    isfinishedtour BOOLEAN DEFAULT false, -- 是否完成導覽
     -- 分數相關欄位（提升查詢效能）
     highest_score INTEGER DEFAULT 0,     -- 最高分數
     latest_score INTEGER DEFAULT 0,      -- 最新分數
@@ -66,6 +68,7 @@ CREATE TABLE IF NOT EXISTS public.user_tour_status (
 
 -- 索引優化
 CREATE INDEX IF NOT EXISTS idx_user_profiles_email ON public.user_profiles(email);
+CREATE INDEX IF NOT EXISTS idx_user_profiles_name ON public.user_profiles(name);
 CREATE INDEX IF NOT EXISTS idx_user_credentials_user_id ON public.user_credentials(user_id);
 CREATE INDEX IF NOT EXISTS idx_scores_user_id ON public.scores(user_id);
 CREATE INDEX IF NOT EXISTS idx_scores_score_desc ON public.scores(score DESC);
@@ -215,6 +218,75 @@ BEGIN
     WHERE id = p_user_id;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 維護前五名排行榜的函數（使用你提供的更完善版本）
+CREATE OR REPLACE FUNCTION maintain_top5_leaderboard(
+    p_profile_id UUID,
+    p_name TEXT,
+    p_score INTEGER
+)
+RETURNS BOOLEAN AS $$
+DECLARE
+    current_count INTEGER;
+    lowest_score INTEGER;
+    is_top5 BOOLEAN := FALSE;
+BEGIN
+    -- 檢查當前排行榜人數
+    SELECT COUNT(*) INTO current_count FROM public.leaderboard;
+    
+    -- 如果未滿5人，直接插入或更新
+    IF current_count < 5 THEN
+        INSERT INTO public.leaderboard (profile_id, name, score, updated_at)
+        VALUES (p_profile_id, p_name, p_score, NOW())
+        ON CONFLICT (profile_id) 
+        DO UPDATE SET 
+            name = EXCLUDED.name,
+            score = EXCLUDED.score,
+            updated_at = EXCLUDED.updated_at
+        WHERE leaderboard.score < EXCLUDED.score;
+        is_top5 := TRUE;
+    ELSE
+        -- 已滿5人，檢查是否能進入前5名
+        SELECT MIN(score) INTO lowest_score FROM public.leaderboard;
+        
+        -- 檢查用戶是否已在排行榜中
+        IF EXISTS (SELECT 1 FROM public.leaderboard WHERE profile_id = p_profile_id) THEN
+            -- 用戶已在榜中，只有分數更高才更新
+            UPDATE public.leaderboard 
+            SET name = p_name, score = p_score, updated_at = NOW()
+            WHERE profile_id = p_profile_id AND score < p_score;
+            is_top5 := TRUE;
+        ELSIF p_score > lowest_score THEN
+            -- 新用戶且分數夠高，移除最低分並插入新記錄
+            DELETE FROM public.leaderboard 
+            WHERE score = lowest_score 
+            AND profile_id = (
+                SELECT profile_id FROM public.leaderboard 
+                WHERE score = lowest_score 
+                ORDER BY updated_at ASC 
+                LIMIT 1
+            );
+            
+            INSERT INTO public.leaderboard (profile_id, name, score, updated_at)
+            VALUES (p_profile_id, p_name, p_score, NOW());
+            is_top5 := TRUE;
+        END IF;
+    END IF;
+    
+    RETURN is_top5;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- 數據遷移：為現有用戶設置 name 欄位
+-- 這個腳本會將現有用戶的 email 作為 name（如果 name 為 null）
+UPDATE public.user_profiles 
+SET name = email 
+WHERE name IS NULL;
+
+-- 數據遷移：為現有用戶設置預設的 isfinishedtour 值
+UPDATE public.user_profiles 
+SET isfinishedtour = false 
+WHERE isfinishedtour IS NULL;
 
 -- 設定 GraphQL 自動生成
 COMMENT ON SCHEMA public IS '@graphql({"inflect_names": true})';

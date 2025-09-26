@@ -74,12 +74,13 @@ const EndBoard = ({ score, isRunning, session, isLevel2, ...props }) => {
       if (scoreSubmittedRef.current) {
         return;
       }
-      await addScore();
+      if (session?.profileId) {
+        await addScore();
+      }
       await getLeaderboard();
     };
 
     if (
-      session?.profileId &&
       score !== undefined &&
       timerStatus === 'end' &&
       !scoreSubmittedRef.current
