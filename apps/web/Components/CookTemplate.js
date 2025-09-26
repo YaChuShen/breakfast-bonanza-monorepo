@@ -1,17 +1,14 @@
 import { Box, Center, Image } from '@chakra-ui/react';
-import React, { useEffect, useState } from 'react';
-import { useFormContext } from 'react-hook-form';
+import smartSize from 'helpers/smartSize';
+import { useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { selectPlate, setTargetItem } from 'store/features/plateSlice';
 import stoveList from '../contents/cookedList';
-import Progress from './Progress';
 import { MUTURITY_TIME, OVERTIME } from '../contents/rules';
 import onDragEnter from '../helpers/cook/onDragEnter';
 import onDrop from '../helpers/cook/onDrop';
 import passToPlate from '../helpers/cook/passToPlate';
-import { useDispatch } from 'react-redux';
-import { setTargetItem } from 'store/features/plateSlice';
-import { useSelector } from 'react-redux';
-import { selectPlate } from 'store/features/plateSlice';
-import smartSize from 'helpers/smartSize';
+import Progress from './Progress';
 
 const statusList = {
   cooking: 'init',
@@ -79,6 +76,7 @@ const CookTemplate = ({ tool, w = '14em', isLevel2, ...props }) => {
           pointerEvents={'none'}
           userSelect="none"
           w={w}
+          alt="cook"
         />
         {(isCooking || isMaturity) && (
           <Progress
