@@ -1,9 +1,8 @@
 'use client';
 import { createSlice } from '@reduxjs/toolkit';
-import { range, sample } from 'lodash';
-import menuList from 'contents/menuList';
-import { menuInfo } from 'contents/menuList';
+import menuList, { menuInfo } from 'contents/menuList';
 import { MAX_CUSTOMERS } from 'contents/rules';
+import { range, sample } from 'lodash';
 
 const initialState = {
   score: 0,
@@ -40,6 +39,9 @@ export const customerSlice = createSlice({
     minusScore: (state) => {
       state.score = state.score - 30;
     },
+    clearScore: (state) => {
+      state.score = 0;
+    },
     getInitCustomersState: (state, action) => {
       const { isLevel2 } = action.payload;
       const basicList = menuInfo
@@ -67,6 +69,7 @@ export const {
   getNextOrder,
   getScore,
   minusScore,
+  clearScore,
   getInitCustomersState,
 } = customerSlice.actions;
 

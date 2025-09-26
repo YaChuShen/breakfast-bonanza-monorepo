@@ -2,6 +2,7 @@
 
 import { Image, Text, VStack } from '@chakra-ui/react';
 import { useDispatch } from 'react-redux';
+import { clearScore } from 'store/features/customerSlice';
 import { timerStatus } from 'store/features/gameConfigSlice';
 import AuthSection from './AuthSection';
 import MotionBoard from './MotionBoard';
@@ -38,6 +39,7 @@ const ReadyStartBoard = ({ session, timerStart }) => {
           onClick={() => {
             timerStart();
             dispatch(timerStatus({ status: 'gameRunning' }));
+            dispatch(clearScore()); // 🎯 開始遊戲時清空分數
           }}
         />
 

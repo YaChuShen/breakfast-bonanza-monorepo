@@ -3,9 +3,8 @@
 import { Button, HStack, VStack } from '@chakra-ui/react';
 import { LEVEL2_SCORE } from 'contents/rules';
 import { once } from 'lodash';
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
-import calculateRanking from 'helpers/calculateRanking';
 import graphqlClient from 'lib/api-client';
 import { trackEvent } from 'lib/mixpanel';
 import { useRouter } from 'next/navigation';
@@ -24,24 +23,14 @@ const endBoardVariants = {
   boxShadow: '0px 2px 20px 1px rgba(0, 0, 0, 0.15)',
 };
 
-const EndBoard = ({
-  score,
-  isRunning,
-  session,
-  isLevel2,
-  currentLeaderboard,
-  ...props
-}) => {
+const EndBoard = ({ score, isRunning, session, isLevel2, ...props }) => {
   const { timerStatus } = useSelector(selectGameConfig);
   const router = useRouter();
   const scoreSubmittedRef = useRef(false);
+  const [currentLeaderboard, setCurrentLeaderboard] = useState([]);
 
-  const { newLeaderboard, isTopFive } = calculateRanking(
-    score,
-    currentLeaderboard,
-    session?.profileId,
-    session?.user?.name
-  );
+  const isTopFive =
+    currentLeaderboard.length > 0 && score > currentLeaderboard[0].score;
 
   const trackGameCompletion = useMemo(
     () =>
@@ -60,18 +49,33 @@ const EndBoard = ({
   useEffect(() => {
     const addScore = async () => {
       if (scoreSubmittedRef.current) {
-        console.log('Score already submitted, skipping...');
         return;
       }
-
       try {
         scoreSubmittedRef.current = true;
         await graphqlClient.addScore(session?.profileId, score, timerStatus);
-        console.log('Score submitted successfully');
       } catch (error) {
         console.error('Error adding score:', error);
         scoreSubmittedRef.current = false;
       }
+    };
+
+    const getLeaderboard = async () => {
+      try {
+        const data = await graphqlClient.getLeaderboard(5);
+        setCurrentLeaderboard(data.getLeaderboard);
+      } catch (error) {
+        console.error('獲取排行榜失敗:', error);
+        setCurrentLeaderboard([]);
+      }
+    };
+
+    const checkScoreSubmitted = async () => {
+      if (scoreSubmittedRef.current) {
+        return;
+      }
+      await addScore();
+      await getLeaderboard();
     };
 
     if (
@@ -80,7 +84,7 @@ const EndBoard = ({
       timerStatus === 'end' &&
       !scoreSubmittedRef.current
     ) {
-      addScore();
+      checkScoreSubmitted();
     }
   }, [session?.profileId, score, timerStatus]);
 
@@ -107,11 +111,13 @@ const EndBoard = ({
             {showLevelUpMessege && (
               <LevelUp endBoardVariants={endBoardVariants} />
             )}
-            {(newLeaderboard || !isRunning) && (
+            {(currentLeaderboard || !isRunning) && (
               <Leaderboard
-                newLeaderboard={newLeaderboard}
+                newLeaderboard={currentLeaderboard}
                 endBoardVariants={endBoardVariants}
-                isLoading={!newLeaderboard}
+                isLoading={
+                  !currentLeaderboard || currentLeaderboard.length === 0
+                }
                 profileId={session?.profileId}
               />
             )}

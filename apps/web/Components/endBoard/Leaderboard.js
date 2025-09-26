@@ -3,11 +3,10 @@ import {
   Divider,
   Grid,
   Icon,
+  Skeleton,
   Text,
   VStack,
-  Skeleton,
 } from '@chakra-ui/react';
-import _ from 'lodash';
 import {
   TbSquareRoundedNumber1Filled,
   TbSquareRoundedNumber2Filled,
@@ -32,6 +31,7 @@ const Leaderboard = ({
   isLoading,
   profileId,
 }) => {
+  console.log('newLeaderboard', newLeaderboard);
   return (
     <VStack alignItems="flex-start" {...endBoardVariants} bg="white">
       {isLoading ? (

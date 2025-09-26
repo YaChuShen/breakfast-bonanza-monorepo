@@ -110,12 +110,23 @@ export const NextAuthOptions = NextAuth({
   }),
   secret: process.env.NEXTAUTH_SECRET,
   callbacks: {
-    jwt: async ({ token, user }) => {
+    jwt: async ({ token, user, account }) => {
       const now = Math.floor(Date.now() / 1000);
       if (user) {
+        // 統一處理 profileId：將 Google 登入的 id 轉換為 profileId
+        const processedUser = {
+          ...user,
+          profileId: user.profileId || user.id, // 如果沒有 profileId，就使用 id
+        };
+
+        // 如果是 Google 登入，移除原本的 id 以避免混淆
+        if (account?.provider === 'google' && !user.profileId) {
+          delete processedUser.id;
+        }
+
         token = {
           ...token,
-          ...user,
+          ...processedUser,
           iat: now,
           expjwt: now + 60 * 60 * 24 * 1,
         };
@@ -123,7 +134,16 @@ export const NextAuthOptions = NextAuth({
       return token;
     },
     session: async ({ session, token }) => {
-      return { ...session, ...token };
+      // 確保 session 中只有 profileId，沒有 id（除非是其他用途的 id）
+      const sessionData = { ...session, ...token };
+
+      // 如果有 id 但沒有 profileId，將 id 重新命名為 profileId
+      if (sessionData.id && !sessionData.profileId) {
+        sessionData.profileId = sessionData.id;
+        delete sessionData.id;
+      }
+
+      return sessionData;
     },
     async signIn({ user }) {
       return !!user;

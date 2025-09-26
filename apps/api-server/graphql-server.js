@@ -58,11 +58,11 @@ const schema = buildSchema(`
   }
 
   type LeaderboardEntry {
-    id: ID!
-    profile_id: ID!
+    rank: Int!
+    profileId: ID!
     name: String!
     score: Int!
-    updated_at: String!
+    updatedAt: String!
   }
 
   type RankingEntry {
@@ -89,9 +89,15 @@ const schema = buildSchema(`
     getCurrentRankings: [RankingEntry!]!
   }
 
+  type AddScoreResponse {
+    success: Boolean!
+    isTopFive: Boolean!
+    isLevel2: Boolean!
+  }
+
   type Mutation {
     register(name: String!, email: String!, password: String!): RegisterResponse!
-    addScore(userId: ID!, score: Int!, timerStatus: String!): Boolean!
+    addScore(userId: ID!, score: Int!, timerStatus: String!): AddScoreResponse!
     finishTour(profileId: ID!): Boolean!
     updateLeaderboard(
       profileId: ID!, 
@@ -192,6 +198,7 @@ const root = {
       throw new Error("遊戲狀態異常");
     }
 
+    // 添加分數記錄
     const { error: addScoreError } = await supabase.rpc(
       "add_score_and_update_stats",
       {
@@ -203,6 +210,29 @@ const root = {
 
     if (addScoreError)
       throw new Error(`新增分數失敗: ${addScoreError.message}`);
+
+    // 獲取用戶名稱（email）用於排行榜
+    const { data: userData, error: userError } = await supabase
+      .from("user_profiles")
+      .select("email")
+      .eq("id", userId)
+      .single();
+
+    if (userError) throw new Error(`獲取用戶資料失敗: ${userError.message}`);
+
+    // 調用維護前五名排行榜的函數
+    const { data: isTopFiveResult, error: leaderboardError } =
+      await supabase.rpc("maintain_top5_leaderboard", {
+        p_profile_id: userId,
+        p_name: userData.email,
+        p_score: score,
+      });
+
+    if (leaderboardError)
+      throw new Error(`更新排行榜失敗: ${leaderboardError.message}`);
+
+    // Supabase RPC 返回的布爾值直接就是 data
+    const isTopFive = isTopFiveResult === true;
 
     const LEVEL2_SCORE = 1000;
     const isLevel2 = score >= LEVEL2_SCORE;
@@ -217,7 +247,11 @@ const root = {
     if (updateError)
       throw new Error(`更新用戶等級失敗: ${updateError.message}`);
 
-    return true;
+    return {
+      success: true,
+      isTopFive: isTopFive,
+      isLevel2: isLevel2,
+    };
   },
 
   // 查詢用戶（包含分數統計）
@@ -257,37 +291,12 @@ const root = {
   },
 
   // 獲取排行榜
-  getLeaderboard: async ({ limit }) => {
-    const { data, error } = await supabase
-      .from("leaderboard")
-      .select("*")
-      .order("score", { ascending: false })
-      .limit(limit);
-
-    if (error) throw new Error(`查詢排行榜失敗: ${error.message}`);
-    return data;
-  },
-
-  // 獲取當前排名
-  getCurrentRankings: async () => {
-    // 先檢查是否有快取的排名
-    const { data: cachedRankings } = await supabase
-      .from("rankings")
-      .select("rankings")
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (cachedRankings) {
-      return cachedRankings.rankings;
-    }
-
-    // 沒有快取則即時生成
+  getLeaderboard: async ({ limit = 10 }) => {
     const { data, error } = await supabase
       .from("leaderboard")
       .select("profile_id, name, score, updated_at")
       .order("score", { ascending: false })
-      .limit(10);
+      .limit(limit);
 
     if (error) throw new Error(`查詢排名失敗: ${error.message}`);
 
@@ -298,51 +307,6 @@ const root = {
       score: entry.score,
       updatedAt: entry.updated_at,
     }));
-  },
-
-  // 更新排行榜
-  updateLeaderboard: async ({
-    profileId,
-    score,
-    name,
-    timerStatus,
-    timestamp,
-    newLeaderboard,
-  }) => {
-    const timeDiff = Date.now() - parseInt(timestamp);
-
-    if (timerStatus !== "end" && timeDiff > 5000) {
-      throw new Error("遊戲時間異常");
-    }
-
-    // 更新個人排行榜記錄
-    const { error: leaderboardError } = await supabase
-      .from("leaderboard")
-      .upsert({
-        profile_id: profileId,
-        name: name,
-        score: score,
-        updated_at: new Date().toISOString(),
-      });
-
-    if (leaderboardError)
-      throw new Error(`更新排行榜失敗: ${leaderboardError.message}`);
-
-    // 清空舊排名並插入新排名
-    await supabase
-      .from("rankings")
-      .delete()
-      .neq("id", "00000000-0000-0000-0000-000000000000");
-
-    const { error: rankingsError } = await supabase.from("rankings").insert({
-      rankings: JSON.parse(newLeaderboard),
-      updated_at: new Date().toISOString(),
-    });
-
-    if (rankingsError)
-      throw new Error(`更新排名失敗: ${rankingsError.message}`);
-
-    return true;
   },
 };
 
