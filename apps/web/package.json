@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@breakfast-bonanza/shared": "*",
     "@artsy/fresnel": "^6.2.1",
     "@auth/firebase-adapter": "^1.0.0",
     "@auth/supabase-adapter": "^1.10.0",

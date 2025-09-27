@@ -6,7 +6,6 @@ const { PrismaClient } = require("@prisma/client");
 
 const app = express();
 
-// Add basic middleware
 app.use(express.json());
 
 app.use((req, res, next) => {
@@ -18,9 +17,33 @@ app.use((req, res, next) => {
   next();
 });
 
+// Health check endpoint
+app.get("/test", (req, res) => {
+  res.json({
+    status: "OK",
+    message: "Socket server is running",
+    timestamp: new Date().toISOString(),
+    connectedClients: io.engine.clientsCount,
+  });
+});
+
+app.get("/health", (req, res) => {
+  res.json({
+    status: "healthy",
+    uptime: process.uptime(),
+    memory: process.memoryUsage(),
+  });
+});
+
 const server = http.createServer(app);
 const roomHosts = {};
 const userRooms = new Map();
+const rooms = {}; // 儲存房間信息
+
+// 生成隨機房間ID
+function generateRoomId() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
 
 const io = new Server(server, {
   cors: {
@@ -28,6 +51,7 @@ const io = new Server(server, {
       "http://localhost:3000",
       "http://localhost:3001",
       "http://localhost:3002",
+      "http://localhost:3003",
       "https://breakfast-bonanza-socket-server.onrender.com",
     ],
     methods: ["GET", "POST"],
@@ -59,41 +83,154 @@ io.on("connection", (socket) => {
     console.error("Connection error:", error);
   });
 
-  socket.on("joinRoom", (roomId) => {
-    socket.join(roomId);
-    userRooms.set(socket.user.id, roomId);
-    socket.data.roomId = roomId;
-    console.log(`User ${socket.user.id} joined room ${roomId}`);
-    console.log("Current userRooms:", Object.fromEntries(userRooms));
+  socket.on("createRoom", ({ playerId, playerName }) => {
+    try {
+      console.log(
+        `創建房間請求 - playerId: ${playerId}, playerName: ${playerName}`
+      );
 
-    if (!roomHosts[roomId]) {
+      const roomId = generateRoomId();
+      console.log(`生成房間ID: ${roomId}`);
+
+      // 創建房間數據
+      rooms[roomId] = {
+        hostId: socket.user.id,
+        hostName: socket.user.name,
+        players: [
+          {
+            id: socket.user.id,
+            name: socket.user.name,
+            email: socket.user.email,
+            ready: false,
+          },
+        ],
+        createdAt: new Date(),
+        status: "waiting", // waiting, ready, playing
+      };
+
+      // 加入房間
+      socket.join(roomId);
+      socket.data.roomId = roomId;
+      userRooms.set(socket.user.id, roomId);
       roomHosts[roomId] = {
         hostId: socket.user.id,
         hostName: socket.user.name,
         hostEmail: socket.user.email,
       };
+
+      // 回傳房間創建成功
+      socket.emit("roomCreated", { roomId });
+      console.log(`房間 ${roomId} 創建成功`);
+    } catch (error) {
+      console.error("創建房間失敗:", error);
+      socket.emit("createRoomError", { message: "創建房間失敗，請稍後再試" });
     }
-
-    socket.to(roomId).emit("playerJoined", {
-      playerId: socket.user.id,
-      playerName: socket.user.name,
-      playerEmail: socket.user.email,
-    });
-
-    socket.emit("hostInfo", roomHosts[roomId]);
   });
 
-  // socket.on("connectionFailed", ({ roomId, error }) => {
-  //   console.log(`Connection failed for room ${roomId}:`, error);
-  //   // Notify host about the connection failure
-  //   socket.to(roomId).emit("guestConnectionFailed", {
-  //     error: error,
-  //     timestamp: new Date().toISOString(),
-  //   });
-  // });
+  socket.on("joinRoom", ({ roomId, playerId, playerName }) => {
+    try {
+      console.log(
+        `加入房間請求 - roomId: ${roomId}, playerId: ${playerId}, playerName: ${playerName}`
+      );
+
+      // 檢查房間是否存在
+      if (!rooms[roomId]) {
+        socket.emit("joinRoomError", { message: "房間不存在或已關閉" });
+        return;
+      }
+
+      // 檢查房間是否已滿 (最多2人)
+      if (rooms[roomId].players.length >= 2) {
+        socket.emit("joinRoomError", { message: "房間已滿" });
+        return;
+      }
+
+      // 檢查玩家是否已在房間中
+      const existingPlayer = rooms[roomId].players.find(
+        (p) => p.id === socket.user.id
+      );
+      if (existingPlayer) {
+        socket.emit("joinRoomError", { message: "您已在此房間中" });
+        return;
+      }
+
+      // 添加玩家到房間
+      rooms[roomId].players.push({
+        id: socket.user.id,
+        name: socket.user.name,
+        email: socket.user.email,
+        ready: false,
+      });
+
+      // 加入房間
+      socket.join(roomId);
+      socket.data.roomId = roomId;
+      userRooms.set(socket.user.id, roomId);
+
+      // 通知房間內其他玩家
+      socket.to(roomId).emit("playerJoined", {
+        playerId: socket.user.id,
+        playerName: socket.user.name,
+        playerEmail: socket.user.email,
+      });
+
+      // 回傳加入成功
+      socket.emit("joinedRoom", { roomId });
+      console.log(`玩家 ${socket.user.name} 成功加入房間 ${roomId}`);
+
+      // 如果房間滿了，通知所有玩家可以開始遊戲
+      if (rooms[roomId].players.length === 2) {
+        rooms[roomId].status = "ready";
+        io.to(roomId).emit("roomReady", {
+          players: rooms[roomId].players,
+          canStart: true,
+          hostId: rooms[roomId].hostId,
+        });
+        console.log(`房間 ${roomId} 已滿，可以開始遊戲`);
+      }
+    } catch (error) {
+      console.error("加入房間失敗:", error);
+      socket.emit("joinRoomError", { message: "加入房間失敗，請稍後再試" });
+    }
+  });
+
+  socket.on("playerReady", (roomId) => {
+    socket.to(roomId).emit("opponentReady", {
+      playerId: socket.user.id,
+      playerName: socket.user.name,
+    });
+  });
+
+  socket.on("gameStart", (roomId) => {
+    io.to(roomId).emit("hostStartTheGame");
+  });
+
+  socket.on("scoreUpdate", ({ roomId, score }) => {
+    try {
+      // Validate inputs
+      if (!roomId || typeof score !== "number") {
+        console.error("Invalid score update data:", { roomId, score });
+        return;
+      }
+
+      console.log(
+        `Score update from ${socket.user.name} in room ${roomId}, ID為: ${socket.user.id}, 分數為: ${score}`
+      );
+
+      // Emit to all other players in the room except the sender
+      socket.to(roomId).emit("opponentScoreUpdate", {
+        playerId: socket.user.id,
+        playerName: socket.user.name,
+        score,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (error) {
+      console.error("Error handling score update:", error);
+    }
+  });
 
   socket.on("disconnect", () => {
-    console.log(`User ${socket.user.id} disconnected`);
+    console.log(`User ${socket.user.name} disconnected`);
     console.log(
       "Current userRooms before cleanup:",
       Object.fromEntries(userRooms)
@@ -103,6 +240,36 @@ io.on("connection", (socket) => {
     const roomId = socket.data.roomId;
 
     if (roomId) {
+      // Clean up room data
+      if (rooms[roomId]) {
+        // Remove player from room
+        rooms[roomId].players = rooms[roomId].players.filter(
+          (p) => p.id !== socket.user.id
+        );
+
+        // If no players left, delete the room
+        if (rooms[roomId].players.length === 0) {
+          delete rooms[roomId];
+          console.log(`房間 ${roomId} 已刪除（無玩家）`);
+        } else {
+          // If host disconnected, make first remaining player the host
+          if (
+            rooms[roomId].hostId === socket.user.id &&
+            rooms[roomId].players.length > 0
+          ) {
+            const newHost = rooms[roomId].players[0];
+            rooms[roomId].hostId = newHost.id;
+            rooms[roomId].hostName = newHost.name;
+            roomHosts[roomId] = {
+              hostId: newHost.id,
+              hostName: newHost.name,
+              hostEmail: newHost.email,
+            };
+            console.log(`新房主: ${newHost.name}`);
+          }
+        }
+      }
+
       // If the disconnected user was the host, clear the host info
       let isHostDisconnected = false;
       if (roomHosts[roomId]?.hostId === socket.user.id) {
@@ -129,24 +296,6 @@ io.on("connection", (socket) => {
       console.log("No room found for disconnected user");
     }
   });
-
-  // socket.on("playerReady", ({ roomId }) => {
-  //   socket.to(roomId).emit("opponentReady", {
-  //     playerId: socket.user.id,
-  //     playerName: socket.user.name,
-  //   });
-  // });
-
-  // socket.on("startGame", ({ roomId }) => {
-  //   io.to(roomId).emit("gameStarted");
-  // });
-
-  // socket.on("updateScore", ({ roomId, score }) => {
-  //   io.to(roomId).emit("scoreUpdated", {
-  //     playerId: socket.user.id,
-  //     score: score,
-  //   });
-  // });
 
   // socket.on("gameOver", async ({ roomId, winner, scores }) => {
   //   try {

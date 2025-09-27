@@ -3,6 +3,8 @@
 import { Box } from '@chakra-ui/react';
 import BeginBoard from 'Components/BeginBoard';
 import EndBoard from 'Components/EndBoard';
+import GameModeSelector from 'Components/GameModeSelector';
+import MultiPlayerOptions from 'Components/MultiPlayerOptions';
 import { AnimatePresence } from 'framer-motion';
 import useExpiryTimer from 'hooks/useExpiryTimer';
 import { useEffect, useState } from 'react';
@@ -25,15 +27,54 @@ const GameStageBoard = ({ session, score, isLevel2 }) => {
   useEffect(() => {
     const initialTimerStatus = sessionStorage.getItem('isTour')
       ? 'readyStarting'
-      : 'initial';
+      : 'modeSelection';
     dispatchAction({
       action: 'timerStatus',
       payload: { status: initialTimerStatus },
     });
   }, []);
 
+  // 監聽多人遊戲開始事件
+  useEffect(() => {
+    const handleMultiPlayerGameStart = () => {
+      timerStart();
+    };
+
+    window.addEventListener('multiPlayerGameStart', handleMultiPlayerGameStart);
+    return () => {
+      window.removeEventListener(
+        'multiPlayerGameStart',
+        handleMultiPlayerGameStart
+      );
+    };
+  }, [timerStart]);
+
   const boardList = {
     initial: <BeginBoard session={session} />,
+    modeSelection: <GameModeSelector session={session} />,
+    singlePlayerReady: (
+      <ReadyStartBoard
+        timerStart={timerStart}
+        session={session}
+        gameMode="single"
+      />
+    ),
+    multiPlayerOptions: <MultiPlayerOptions session={session} />,
+    waitingForPlayer: (
+      // TODO: 創建等待玩家組件
+      <ReadyStartBoard
+        timerStart={timerStart}
+        session={session}
+        gameMode="waiting"
+      />
+    ),
+    multiPlayerReady: (
+      <ReadyStartBoard
+        timerStart={timerStart}
+        session={session}
+        gameMode="multi"
+      />
+    ),
     touring: '',
     readyStarting: (
       <ReadyStartBoard timerStart={timerStart} session={session} />
@@ -61,6 +102,7 @@ const GameStageBoard = ({ session, score, isLevel2 }) => {
         seconds={seconds}
         profileId={session?.profileId ?? session?.id}
         isSingin={session}
+        session={session}
       />
       {!isRunning && (
         <Box
