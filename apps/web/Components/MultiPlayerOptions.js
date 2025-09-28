@@ -3,6 +3,7 @@
 import {
   Box,
   Button,
+  HStack,
   Image,
   Input,
   Text,
@@ -33,13 +34,12 @@ const MultiPlayerOptions = ({ session }) => {
       dispatch(setRoomInfo({ roomId, hostId: currentUserId }));
       dispatch(timerStatus({ status: 'waitingForPlayer', roomId }));
       toast({
-        title: '房間建立成功！',
-        description: `房間代碼：${roomId}`,
+        title: 'Room created successfully!',
+        description: `Room code: ${roomId}`,
         status: 'success',
         duration: 5000,
         isClosable: true,
       });
-      // 複製房間代碼到剪貼簿
       navigator.clipboard?.writeText(roomId);
     };
 
@@ -47,7 +47,7 @@ const MultiPlayerOptions = ({ session }) => {
     const handleCreateRoomError = (error) => {
       setIsCreatingRoom(false);
       toast({
-        title: '建立房間失敗',
+        title: 'Failed to create the room!',
         description: error.message,
         status: 'error',
         duration: 3000,
@@ -61,7 +61,7 @@ const MultiPlayerOptions = ({ session }) => {
       dispatch(setRoomInfo({ roomId }));
       dispatch(timerStatus({ status: 'multiPlayerReady', roomId }));
       toast({
-        title: '成功加入房間！',
+        title: 'Successfully joined the room!',
         status: 'success',
         duration: 3000,
         isClosable: true,
@@ -72,7 +72,7 @@ const MultiPlayerOptions = ({ session }) => {
     const handleJoinRoomError = (error) => {
       setIsJoiningRoom(false);
       toast({
-        title: '加入房間失敗',
+        title: 'Failed to join the room!',
         description: error.message,
         status: 'error',
         duration: 3000,
@@ -98,8 +98,8 @@ const MultiPlayerOptions = ({ session }) => {
   const handleCreateRoom = () => {
     if (!session) {
       toast({
-        title: '請先登入',
-        description: '建立房間需要登入帳號',
+        title: 'Please login first',
+        description: 'Creating a room requires login',
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -109,8 +109,8 @@ const MultiPlayerOptions = ({ session }) => {
 
     if (!socket) {
       toast({
-        title: '連接失敗',
-        description: '請稍後再試',
+        title: 'Connection failed',
+        description: 'Please try again later',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -128,8 +128,8 @@ const MultiPlayerOptions = ({ session }) => {
   const handleJoinRoom = () => {
     if (!session) {
       toast({
-        title: '請先登入',
-        description: '加入房間需要登入帳號',
+        title: 'Please login first',
+        description: 'Joining a room requires login',
         status: 'warning',
         duration: 3000,
         isClosable: true,
@@ -139,7 +139,7 @@ const MultiPlayerOptions = ({ session }) => {
 
     if (!roomCode.trim()) {
       toast({
-        title: '請輸入房間代碼',
+        title: 'Please enter the room code',
         status: 'warning',
         duration: 2000,
         isClosable: true,
@@ -149,8 +149,8 @@ const MultiPlayerOptions = ({ session }) => {
 
     if (!socket) {
       toast({
-        title: '連接失敗',
-        description: '請稍後再試',
+        title: 'Connection failed',
+        description: 'Please try again later',
         status: 'error',
         duration: 3000,
         isClosable: true,
@@ -171,7 +171,7 @@ const MultiPlayerOptions = ({ session }) => {
   };
 
   return (
-    <MotionBoard py={{ md: '2em', xl: '6em' }} px="2em">
+    <MotionBoard py={{ md: '2em', xl: '3em' }} px="2em">
       <VStack w="100%" spacing={8} fontWeight={500}>
         <VStack w="100%" spacing={5}>
           <Image
@@ -180,15 +180,14 @@ const MultiPlayerOptions = ({ session }) => {
             alt="breakfast bonanza logo"
           />
           <Text
-            color="green.500"
+            color="red.500"
             fontSize="20px"
             fontWeight={700}
             textAlign="center"
           >
-            雙人模式選項
+            Two-Player Mode
           </Text>
         </VStack>
-
         {session && (
           <VStack fontWeight={700}>
             <Text color="gray.700">
@@ -197,101 +196,149 @@ const MultiPlayerOptions = ({ session }) => {
                 {session?.user?.name}
               </Text>
             </Text>
-            <Text>選擇您要創建房間還是加入房間</Text>
+            <Text>Choose whether to create a room or join a room</Text>
           </VStack>
         )}
+        <HStack spacing={6} w="100%" maxW="800px" align="stretch">
+          <Box
+            bg="white"
+            borderRadius="3xl"
+            boxShadow="0 5px 10px 0 rgba(0, 0, 0, 0.01)"
+            p={8}
+            flex={1}
+            border="2px solid"
+            borderColor="transparent"
+            _hover={{
+              boxShadow: '0 5px 15px 0 rgba(252, 180, 109, 0.3)',
+              transform: 'translateY(-2px)',
+            }}
+            transition="all 0.3s"
+          >
+            <VStack spacing={6} align="stretch" h="100%">
+              <HStack spacing={3}>
+                <Box
+                  bg="orange.50"
+                  p={2}
+                  borderRadius="lg"
+                  color="orange.500"
+                  fontSize="xl"
+                  fontWeight="bold"
+                >
+                  +
+                </Box>
+                <Text fontSize="20px" fontWeight={700} color="gray.800">
+                  Create a new room
+                </Text>
+              </HStack>
 
-        <VStack spacing={6} w="100%" maxW="400px">
-          {/* 創建房間 */}
-          <VStack spacing={4} w="100%">
-            <Text fontWeight={600} color="gray.700">
-              創建新房間
-            </Text>
-            <Button
-              onClick={handleCreateRoom}
-              isLoading={isCreatingRoom}
-              loadingText="建立中..."
-              bg="green.500"
-              color="white"
-              fontSize="16px"
-              py="5"
-              px="8"
-              w="100%"
-              size="lg"
-              borderRadius="xl"
-              letterSpacing="1px"
-              _hover={{ bg: 'green.400', transform: 'scale(1.02)' }}
-              _active={{ transform: 'scale(0.98)' }}
-              fontWeight={700}
-              transition="all 0.2s"
-            >
-              🏠 創建房間
-            </Button>
-          </VStack>
+              {/* 描述文字 */}
+              <Text color="gray.600" fontSize="14px" lineHeight="1.6" flex={1}>
+                Invite friends to join the battle
+              </Text>
 
-          {/* 分隔線 */}
-          <Box w="80%" h="1px" bg="gray.200" />
-
-          {/* 加入房間 */}
-          <VStack spacing={4} w="100%">
-            <Text fontWeight={600} color="gray.700">
-              加入現有房間
-            </Text>
-            <Input
-              placeholder="輸入房間代碼"
-              value={roomCode}
-              onChange={(e) => setRoomCode(e.target.value)}
-              size="lg"
-              borderRadius="xl"
-              borderColor="gray.300"
-              _hover={{ borderColor: 'green.300' }}
-              _focus={{
-                borderColor: 'green.500',
-                boxShadow: '0 0 0 1px #38a169',
-              }}
-              textAlign="center"
-              fontSize="16px"
-              letterSpacing="2px"
-            />
-            <Button
-              onClick={handleJoinRoom}
-              isLoading={isJoiningRoom}
-              loadingText="加入中..."
-              bg="blue.500"
-              color="white"
-              fontSize="16px"
-              py="5"
-              px="8"
-              w="100%"
-              size="lg"
-              borderRadius="xl"
-              letterSpacing="1px"
-              _hover={{ bg: 'blue.400', transform: 'scale(1.02)' }}
-              _active={{ transform: 'scale(0.98)' }}
-              fontWeight={700}
-              transition="all 0.2s"
-            >
-              🚪 加入房間
-            </Button>
-          </VStack>
-        </VStack>
-
-        {/* 返回按鈕 */}
+              {/* 創建按鈕 */}
+              <Button
+                onClick={handleCreateRoom}
+                isLoading={isCreatingRoom}
+                loadingText="建立中..."
+                bg="red.500"
+                color="white"
+                fontSize="16px"
+                py={6}
+                borderRadius="xl"
+                fontWeight={700}
+                _hover={{ bg: 'orange.500', transform: 'scale(1.02)' }}
+                _active={{ transform: 'scale(0.98)' }}
+                transition="all 0.2s"
+                size="lg"
+              >
+                Create
+              </Button>
+            </VStack>
+          </Box>
+          <Box
+            bg="white"
+            borderRadius="3xl"
+            boxShadow="0 5px 10px 0 rgba(0, 0, 0, 0.01)"
+            p={8}
+            flex={1}
+            border="2px solid"
+            borderColor="transparent"
+            _hover={{
+              boxShadow: '0 5px 15px 0 rgba(252, 180, 109, 0.3)',
+              transform: 'translateY(-2px)',
+            }}
+            transition="all 0.3s"
+          >
+            <VStack spacing={6} align="stretch" h="100%">
+              <HStack spacing={3}>
+                <Box bg="orange.50" p={2} borderRadius="lg" fontSize="lg">
+                  🚪
+                </Box>
+                <Text fontSize="20px" fontWeight={700} color="gray.800">
+                  Join a room
+                </Text>
+              </HStack>
+              <Text color="gray.600" fontSize="14px" fontWeight={600}>
+                Room code
+              </Text>
+              <Input
+                placeholder="Enter 6-digit room code..."
+                value={roomCode}
+                onChange={(e) => setRoomCode(e.target.value)}
+                size="lg"
+                borderRadius="xl"
+                borderColor="gray.200"
+                bg="gray.50"
+                textAlign="center"
+                fontSize="16px"
+                fontWeight={500}
+                _hover={{ borderColor: 'orange.300', bg: 'white' }}
+                _focus={{
+                  borderColor: 'orange.400',
+                  boxShadow: '0 0 0 1px #f6ad55',
+                  bg: 'white',
+                }}
+                transition="all 0.2s"
+              />
+              <Button
+                onClick={handleJoinRoom}
+                isLoading={isJoiningRoom}
+                loadingText="加入中..."
+                bg="red.500"
+                color="white"
+                fontSize="16px"
+                py={6}
+                borderRadius="xl"
+                fontWeight={700}
+                _hover={{ bg: 'orange.500', transform: 'scale(1.02)' }}
+                _active={{ transform: 'scale(0.98)' }}
+                transition="all 0.2s"
+                size="lg"
+                mt="auto"
+              >
+                Join
+              </Button>
+            </VStack>
+          </Box>
+        </HStack>
         <Button
           onClick={handleBackToModeSelect}
           variant="outline"
           colorScheme="gray"
-          size="sm"
-          borderRadius="lg"
+          size="md"
           _hover={{ bg: 'gray.100' }}
+          fontSize="14px"
+          color="gray.700"
+          borderRadius="xl"
         >
-          ← 返回模式選擇
+          ← Return to Mode Selection
         </Button>
 
         {!session && (
           <VStack textAlign="center" spacing={2}>
             <Text fontSize="sm" color="red.500" fontWeight={600}>
-              ⚠️ 雙人模式需要先登入
+              ⚠️ Two-Player Mode requires login first
             </Text>
           </VStack>
         )}

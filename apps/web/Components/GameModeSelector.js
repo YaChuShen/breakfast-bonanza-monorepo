@@ -1,6 +1,8 @@
 'use client';
 
-import { Button, Image, Text, VStack } from '@chakra-ui/react';
+import { Box, Button, HStack, Image, Text, VStack } from '@chakra-ui/react';
+import { FaUserFriends } from 'react-icons/fa';
+import { MdPerson } from 'react-icons/md';
 import { useDispatch } from 'react-redux';
 import { setGameMode, timerStatus } from 'store/features/gameConfigSlice';
 import AuthSection from './AuthSection';
@@ -28,14 +30,6 @@ const GameModeSelector = ({ session }) => {
             w="60%"
             alt="breakfast bonanza logo"
           />
-          <Text
-            color="red.500"
-            fontSize="20px"
-            fontWeight={700}
-            textAlign="center"
-          >
-            選擇遊戲模式
-          </Text>
         </VStack>
         {session && (
           <VStack fontWeight={700}>
@@ -45,51 +39,128 @@ const GameModeSelector = ({ session }) => {
                 {session?.user?.name}
               </Text>
             </Text>
-            <Text>選擇您的遊戲模式</Text>
+            <Text>🍳 Select Your Game Mode</Text>
           </VStack>
         )}
-        <VStack spacing={6} w="100%" maxW="400px">
-          <Button
-            onClick={handleSinglePlayerMode}
-            bg="blue.500"
-            color="white"
-            fontSize="18px"
-            py="6"
-            px="12"
-            w="100%"
-            size="xl"
-            borderRadius="xl"
-            letterSpacing="1px"
-            _hover={{ bg: 'blue.400', transform: 'scale(1.05)' }}
-            _active={{ transform: 'scale(0.95)' }}
-            fontWeight={700}
-            transition="all 0.2s"
+        <HStack spacing={6} w="100%" maxW="800px" align="stretch">
+          <Box
+            bg="white"
+            borderRadius="3xl"
+            boxShadow="0 5px 10px 0 rgba(0, 0, 0, 0.01)"
+            p={8}
+            flex={1}
+            border="2px solid"
+            borderColor="transparent"
+            _hover={{
+              transform: 'translateY(-2px)',
+            }}
+            transition="all 0.3s"
           >
-            🍳 單人模式
-          </Button>
-          <Button
-            onClick={handleMultiPlayerMode}
-            bg="green.500"
-            color="white"
-            fontSize="18px"
-            py="6"
-            px="12"
-            w="100%"
-            size="xl"
-            borderRadius="xl"
-            letterSpacing="1px"
-            _hover={{ bg: 'green.400', transform: 'scale(1.05)' }}
-            _active={{ transform: 'scale(0.95)' }}
-            fontWeight={700}
-            transition="all 0.2s"
+            <VStack spacing={6} align="center" h="100%">
+              <Box
+                bg="orange.50"
+                p={4}
+                borderRadius="2xl"
+                color="orange.400"
+                fontSize="4xl"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+              >
+                <MdPerson />
+              </Box>
+              <Text fontSize="24px" fontWeight={700} color="gray.800">
+                Single Player Mode
+              </Text>
+              <Text
+                color="gray.600"
+                fontSize="14px"
+                lineHeight="1.6"
+                textAlign="center"
+                flex={1}
+              >
+                Challenge your speed and skills
+              </Text>
+              <Button
+                onClick={handleSinglePlayerMode}
+                bg="orange.400"
+                color="white"
+                fontSize="16px"
+                py={6}
+                borderRadius="xl"
+                fontWeight={700}
+                _hover={{ bg: 'orange.500', transform: 'scale(1.02)' }}
+                _active={{ transform: 'scale(0.98)' }}
+                transition="all 0.2s"
+                size="lg"
+                w="100%"
+              >
+                Start
+              </Button>
+            </VStack>
+          </Box>
+
+          <Box
+            bg="white"
+            borderRadius="3xl"
+            boxShadow="0 5px 10px 0 rgba(0, 0, 0, 0.01)"
+            p={8}
+            flex={1}
+            border="2px solid"
+            borderColor="transparent"
+            _hover={{
+              transform: 'translateY(-2px)',
+            }}
+            transition="all 0.3s"
           >
-            👥 雙人模式
-          </Button>
-        </VStack>
+            <VStack spacing={6} align="center" h="100%">
+              <Box
+                bg="orange.50"
+                p={4}
+                borderRadius="2xl"
+                color="orange.400"
+                fontSize="4xl"
+                display="flex"
+                alignItems="center"
+                justifyContent="center"
+              >
+                <FaUserFriends />
+              </Box>
+              <Text fontSize="24px" fontWeight={700} color="gray.800">
+                Two-Player Mode
+              </Text>
+              <Text
+                color="gray.600"
+                fontSize="14px"
+                lineHeight="1.6"
+                textAlign="center"
+                flex={1}
+              >
+                Compete with friends in breakfast cooking
+              </Text>
+              <Button
+                onClick={handleMultiPlayerMode}
+                bg="orange.400"
+                color="white"
+                fontSize="16px"
+                py={6}
+                borderRadius="xl"
+                fontWeight={700}
+                _hover={{ bg: 'orange.500', transform: 'scale(1.02)' }}
+                _active={{ transform: 'scale(0.98)' }}
+                transition="all 0.2s"
+                size="lg"
+                w="100%"
+              >
+                Enter the lobby
+              </Button>
+            </VStack>
+          </Box>
+        </HStack>
         {!session && (
           <VStack textAlign="center" spacing={2}>
             <Text fontSize="sm" color="gray.600">
-              登入後可記錄分數並參與排行榜！
+              Login to record your score and participate in the leaderboard!
             </Text>
           </VStack>
         )}

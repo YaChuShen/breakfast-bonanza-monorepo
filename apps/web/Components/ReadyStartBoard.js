@@ -1,6 +1,7 @@
 'use client';
 
-import { Box, Button, Image, Text, VStack } from '@chakra-ui/react';
+import { Box, Button, HStack, Image, Text, VStack } from '@chakra-ui/react';
+import { FaRegCopy } from 'react-icons/fa6';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSocket } from 'src/app/socketIoProvider';
 import { clearScore } from 'store/features/customerSlice';
@@ -40,51 +41,50 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
                 {session?.user?.name}
               </Text>
             </Text>
-            {gameMode === 'single' && <Text>按下開始按鈕開始單人遊戲！</Text>}
+            {gameMode === 'single' && (
+              <Text>
+                Press the start button to start the single player game!
+              </Text>
+            )}
             {gameMode === 'multi' && isHost && (
-              <Text>所有玩家準備就緒！按下開始按鈕開始雙人遊戲！</Text>
+              <Text>All players are ready! Start the two-player game!</Text>
             )}
             {gameMode === 'multi' && !isHost && (
               <VStack spacing={2}>
-                <Text color="blue.500" fontSize="lg">
-                  等待房間主人開始遊戲...
-                </Text>
-                <Text fontSize="sm" color="gray.600">
-                  請耐心等待，主人將會開始遊戲
+                <Text color="gray.500">
+                  Waiting for the host to start the game...
                 </Text>
               </VStack>
             )}
             {gameMode === 'waiting' && (
               <VStack spacing={4}>
-                <Text color="orange.500" fontSize="lg">
-                  等待其他玩家加入...
+                <Text color="gray.500">
+                  Waiting for other players to join...
                 </Text>
                 {roomId && (
                   <VStack spacing={2}>
-                    <Text fontSize="sm" color="gray.600">
-                      房間代碼：
-                    </Text>
                     <Box
-                      bg="gray.100"
+                      bg="white"
                       px={4}
                       py={2}
                       borderRadius="lg"
                       cursor="pointer"
                       onClick={copyRoomId}
                       _hover={{ bg: 'gray.200' }}
+                      transition="all 0.2s"
                     >
-                      <Text
-                        fontSize="2xl"
-                        fontWeight="bold"
-                        letterSpacing="3px"
-                        color="blue.500"
-                      >
-                        {roomId}
-                      </Text>
+                      <HStack spacing={3} align="center">
+                        <Text
+                          fontSize="2xl"
+                          fontWeight="bold"
+                          letterSpacing="3px"
+                          color="red.500"
+                        >
+                          {roomId}
+                        </Text>
+                        <FaRegCopy size={18} color="gray.500" opacity={0.7} />
+                      </HStack>
                     </Box>
-                    <Text fontSize="xs" color="gray.500">
-                      點擊房間代碼即可複製
-                    </Text>
                   </VStack>
                 )}
               </VStack>
@@ -92,11 +92,11 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
           </VStack>
         ) : (
           <VStack textAlign="center">
-            <Text>您尚未登入</Text>
+            <Text>You are not logged in</Text>
             <Text>
               {gameMode === 'single'
-                ? '登入或註冊以記錄您的遊戲分數並進入排行榜！'
-                : '多人模式需要登入才能使用'}
+                ? 'Login or register to record your game score and enter the排行榜！'
+                : 'Multi-player mode requires login to use'}
             </Text>
           </VStack>
         )}
@@ -105,7 +105,7 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
             onClick={() => {
               timerStart();
               dispatch(timerStatus({ status: 'gameRunning' }));
-              dispatch(clearScore()); // 🎯 開始遊戲時清空分數
+              dispatch(clearScore());
             }}
           />
         )}
@@ -127,17 +127,18 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
         {gameMode === 'waiting' && (
           <VStack spacing={4}>
             <Text fontSize="sm" color="gray.500" textAlign="center">
-              分享房間代碼給朋友，讓他們加入遊戲
+              Share the room code with friends, let them join the game
             </Text>
             <Button
               onClick={() => dispatch(timerStatus({ status: 'modeSelection' }))}
               variant="outline"
               colorScheme="gray"
-              size="sm"
-              borderRadius="lg"
+              size="md"
+              borderRadius="2xl"
+              color="gray.700"
               _hover={{ bg: 'gray.100' }}
             >
-              ← 返回模式選擇
+              ← Return to mode selection
             </Button>
           </VStack>
         )}

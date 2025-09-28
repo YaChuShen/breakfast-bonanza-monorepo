@@ -93,13 +93,6 @@ const HomePageProvider = ({ dbData, profileId }) => {
 
       if (canStart) {
         dispatch(timerStatus({ status: 'multiPlayerReady' }));
-        toast({
-          title: '房間已滿！',
-          description: '所有玩家準備就緒，可以開始遊戲了！',
-          status: 'success',
-          duration: 3000,
-          isClosable: true,
-        });
       }
     };
 
