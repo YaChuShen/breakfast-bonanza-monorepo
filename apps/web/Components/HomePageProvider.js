@@ -63,7 +63,9 @@ const HomePageProvider = ({ dbData, profileId }) => {
 
   // 多人遊戲 Socket 事件監聽器
   useEffect(() => {
-    if (!socket) return;
+    if (!socket) {
+      return;
+    }
 
     // 有玩家加入房間
     const handlePlayerJoined = ({ playerId, playerName, playerEmail }) => {
@@ -101,7 +103,6 @@ const HomePageProvider = ({ dbData, profileId }) => {
       }
     };
 
-    // 主人開始遊戲
     const handleHostStartTheGame = () => {
       dispatch(timerStatus({ status: 'gameRunning' }));
       dispatch(clearScore()); // 🎯 開始遊戲時清空分數
@@ -118,23 +119,29 @@ const HomePageProvider = ({ dbData, profileId }) => {
       window.dispatchEvent(new CustomEvent('multiPlayerGameStart'));
     };
 
-    // 對手分數更新
     const handleOpponentScoreUpdate = ({ playerId, playerName, score }) => {
-      dispatch(setOpponentScore({ score, playerName }));
+      const isOpponentUpdate = playerId !== (session?.id || session?.profileId);
+
+      if (isOpponentUpdate) {
+        dispatch(setOpponentScore({ score, playerName }));
+      }
     };
 
-    // 綁定事件監聽器
     socket.on('playerJoined', handlePlayerJoined);
     socket.on('roomReady', handleRoomReady);
     socket.on('hostStartTheGame', handleHostStartTheGame);
-    socket.on('opponentScoreUpdate', handleOpponentScoreUpdate);
 
-    // 清理事件監聽器
+    // 特別檢查 opponentScoreUpdate 事件
+    socket.on('opponentScoreUpdate', (data) => {
+      handleOpponentScoreUpdate(data);
+    });
+
     return () => {
       socket.off('playerJoined', handlePlayerJoined);
       socket.off('roomReady', handleRoomReady);
       socket.off('hostStartTheGame', handleHostStartTheGame);
       socket.off('opponentScoreUpdate', handleOpponentScoreUpdate);
+      socket.offAny();
     };
   }, [socket, dispatch, toast, session]);
 

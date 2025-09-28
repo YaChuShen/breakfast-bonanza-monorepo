@@ -213,17 +213,38 @@ io.on("connection", (socket) => {
         return;
       }
 
-      console.log(
-        `Score update from ${socket.user.name} in room ${roomId}, ID為: ${socket.user.id}, 分數為: ${score}`
-      );
+      // Check room info
+      if (rooms[roomId]) {
+        console.log(
+          `🏠 Room ${roomId} players:`,
+          rooms[roomId].players.map((p) => `${p.name}(${p.id})`)
+        );
+      }
 
       // Emit to all other players in the room except the sender
-      socket.to(roomId).emit("opponentScoreUpdate", {
+      console.log(
+        `📤 Server: Emitting opponentScoreUpdate to room ${roomId} (excluding sender ${socket.user.name})`
+      );
+
+      const eventData = {
         playerId: socket.user.id,
         playerName: socket.user.name,
         score,
         timestamp: new Date().toISOString(),
-      });
+      };
+
+      console.log("📋 Server: Event data being sent:", eventData);
+
+      // 檢查房間內的其他 socket
+      const clientsInRoom = io.sockets.adapter.rooms.get(roomId);
+      console.log(
+        "🔍 Server: Clients in room:",
+        clientsInRoom ? Array.from(clientsInRoom) : "No clients"
+      );
+      console.log("🔍 Server: Sender socket ID:", socket.id);
+
+      socket.to(roomId).emit("opponentScoreUpdate", eventData);
+      console.log(`✅ Server: opponentScoreUpdate emitted`);
     } catch (error) {
       console.error("Error handling score update:", error);
     }

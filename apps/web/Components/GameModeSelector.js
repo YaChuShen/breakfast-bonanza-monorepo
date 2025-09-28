@@ -3,6 +3,7 @@
 import { Button, Image, Text, VStack } from '@chakra-ui/react';
 import { useDispatch } from 'react-redux';
 import { setGameMode, timerStatus } from 'store/features/gameConfigSlice';
+import AuthSection from './AuthSection';
 import MotionBoard from './MotionBoard';
 
 const GameModeSelector = ({ session }) => {
@@ -36,7 +37,6 @@ const GameModeSelector = ({ session }) => {
             選擇遊戲模式
           </Text>
         </VStack>
-
         {session && (
           <VStack fontWeight={700}>
             <Text color="gray.700">
@@ -48,7 +48,6 @@ const GameModeSelector = ({ session }) => {
             <Text>選擇您的遊戲模式</Text>
           </VStack>
         )}
-
         <VStack spacing={6} w="100%" maxW="400px">
           <Button
             onClick={handleSinglePlayerMode}
@@ -68,7 +67,6 @@ const GameModeSelector = ({ session }) => {
           >
             🍳 單人模式
           </Button>
-
           <Button
             onClick={handleMultiPlayerMode}
             bg="green.500"
@@ -88,7 +86,6 @@ const GameModeSelector = ({ session }) => {
             👥 雙人模式
           </Button>
         </VStack>
-
         {!session && (
           <VStack textAlign="center" spacing={2}>
             <Text fontSize="sm" color="gray.600">
@@ -96,6 +93,7 @@ const GameModeSelector = ({ session }) => {
             </Text>
           </VStack>
         )}
+        {!session && <AuthSection />}
       </VStack>
     </MotionBoard>
   );

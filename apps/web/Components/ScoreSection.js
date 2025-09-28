@@ -15,6 +15,7 @@ import { useRouter } from 'next/navigation';
 import { MdArrowDropDown } from 'react-icons/md';
 import { useSelector } from 'react-redux';
 import { selectGameConfig } from 'store/features/gameConfigSlice';
+
 const ScoreSection = ({
   score,
   seconds,
@@ -29,13 +30,11 @@ const ScoreSection = ({
     useSelector(selectGameConfig);
 
   const isMultiPlayer = gameMode === 'multi';
-  const currentPlayerName = session?.user?.name || session?.name || '您';
   const isHost =
     session &&
     hostId &&
     (session.id === hostId || session.profileId === hostId);
 
-  // 如果是多人模式，顯示雙人計分版
   if (isMultiPlayer) {
     return (
       <Box
@@ -84,7 +83,6 @@ const ScoreSection = ({
               </HStack>
             </Box>
 
-            {/* VS 指示器 */}
             <Text fontSize="xs" color="gray.400" fontWeight={600}>
               VS
             </Text>
@@ -129,8 +127,6 @@ const ScoreSection = ({
             )}
           </VStack>
         </VStack>
-
-        {/* 下拉選單保持不變 */}
         {isSingin && (
           <Center borderRadius="13px" flexDirection="column" pt="2" w="full">
             <IconButton
