@@ -61,7 +61,6 @@ const GameStageBoard = ({ session, score, isLevel2 }) => {
     ),
     multiPlayerOptions: <MultiPlayerOptions session={session} />,
     waitingForPlayer: (
-      // TODO: 創建等待玩家組件
       <ReadyStartBoard
         timerStart={timerStart}
         session={session}

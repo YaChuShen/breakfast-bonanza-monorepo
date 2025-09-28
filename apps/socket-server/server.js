@@ -261,6 +261,13 @@ io.on("connection", (socket) => {
     const roomId = socket.data.roomId;
 
     if (roomId) {
+      // 🔥 首先判斷斷線用戶是否為房主（在修改任何數據之前）
+      let isHostDisconnected = false;
+      if (rooms[roomId] && rooms[roomId].hostId === socket.user.id) {
+        isHostDisconnected = true;
+        console.log("Host disconnected, room:", roomId);
+      }
+
       // Clean up room data
       if (rooms[roomId]) {
         // Remove player from room
@@ -271,36 +278,37 @@ io.on("connection", (socket) => {
         // If no players left, delete the room
         if (rooms[roomId].players.length === 0) {
           delete rooms[roomId];
+          delete roomHosts[roomId];
           console.log(`房間 ${roomId} 已刪除（無玩家）`);
-        } else {
-          // If host disconnected, make first remaining player the host
-          if (
-            rooms[roomId].hostId === socket.user.id &&
-            rooms[roomId].players.length > 0
-          ) {
-            const newHost = rooms[roomId].players[0];
-            rooms[roomId].hostId = newHost.id;
-            rooms[roomId].hostName = newHost.name;
-            roomHosts[roomId] = {
-              hostId: newHost.id,
-              hostName: newHost.name,
-              hostEmail: newHost.email,
-            };
-            console.log(`新房主: ${newHost.name}`);
-          }
+        } else if (isHostDisconnected) {
+          // If host disconnected and there are remaining players, make first one the new host
+          const newHost = rooms[roomId].players[0];
+          rooms[roomId].hostId = newHost.id;
+          rooms[roomId].hostName = newHost.name;
+          roomHosts[roomId] = {
+            hostId: newHost.id,
+            hostName: newHost.name,
+            hostEmail: newHost.email,
+          };
+          console.log(`新房主: ${newHost.name}`);
         }
       }
 
-      // If the disconnected user was the host, clear the host info
-      let isHostDisconnected = false;
-      if (roomHosts[roomId]?.hostId === socket.user.id) {
-        console.log("Host disconnected, clearing room:", roomId);
+      // If the disconnected user was the host, clean up host info for empty rooms
+      if (
+        isHostDisconnected &&
+        (!rooms[roomId] || rooms[roomId].players.length === 0)
+      ) {
         delete roomHosts[roomId];
-        isHostDisconnected = true;
       }
 
       // Notify other players in the room about the disconnection
-      console.log("Emitting disconnect event to room:", roomId);
+      console.log(
+        "Emitting disconnect event to room:",
+        roomId,
+        "isHostDisconnected:",
+        isHostDisconnected
+      );
       socket.to(roomId).emit("playerDisconnected", {
         playerId: socket.user.id,
         playerName: socket.user.name,

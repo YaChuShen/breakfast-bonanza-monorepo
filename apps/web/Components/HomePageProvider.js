@@ -14,6 +14,7 @@ import {
   selectCustomer,
 } from 'store/features/customerSlice';
 import {
+  resetGameConfig,
   setOpponentScore,
   setRoomInfo,
   timerStatus,
@@ -61,28 +62,24 @@ const HomePageProvider = ({ dbData, profileId }) => {
     return () => clearTimeout(logoutTimer);
   }, [session]);
 
-  // 多人遊戲 Socket 事件監聽器
   useEffect(() => {
     if (!socket) {
       return;
     }
 
-    // 有玩家加入房間
-    const handlePlayerJoined = ({ playerId, playerName, playerEmail }) => {
+    const handlePlayerJoined = ({ playerName }) => {
       toast({
-        title: '有新玩家加入！',
-        description: `${playerName} 已加入房間`,
-        status: 'info',
+        title: 'New player joined!',
+        description: `${playerName} joined the room`,
+        status: 'warning',
         duration: 3000,
         isClosable: true,
       });
     };
 
-    // 房間準備就緒（2個玩家都在房間內）
     const handleRoomReady = ({ players, canStart, hostId }) => {
       dispatch(setRoomInfo({ playersInfo: players, hostId }));
 
-      // 設置對手名稱
       if (players && players.length === 2 && session) {
         const currentUserId = session.id || session.profileId;
         const opponent = players.find((player) => player.id !== currentUserId);
@@ -98,17 +95,15 @@ const HomePageProvider = ({ dbData, profileId }) => {
 
     const handleHostStartTheGame = () => {
       dispatch(timerStatus({ status: 'gameRunning' }));
-      dispatch(clearScore()); // 🎯 開始遊戲時清空分數
-      dispatch(setOpponentScore({ score: 0 })); // 🎯 重置對手分數
+      dispatch(clearScore());
+      dispatch(setOpponentScore({ score: 0 }));
       toast({
-        title: '遊戲開始！',
-        description: '主人已開始遊戲，快開始製作早餐吧！',
+        title: 'game started',
+        description: 'start making breakfast!',
         status: 'success',
         duration: 2000,
         isClosable: true,
       });
-      // 這裡需要觸發 timer 開始，但是我們沒有直接訪問 timerStart
-      // 可以使用一個全域事件或者其他方式來處理
       window.dispatchEvent(new CustomEvent('multiPlayerGameStart'));
     };
 
@@ -120,9 +115,42 @@ const HomePageProvider = ({ dbData, profileId }) => {
       }
     };
 
+    const handlePlayerDisconnected = ({
+      playerId,
+      playerName,
+      isHostDisconnected,
+    }) => {
+      console.log('Player disconnected:', {
+        playerId,
+        playerName,
+        isHostDisconnected,
+      });
+
+      dispatch(resetGameConfig());
+
+      if (isHostDisconnected) {
+        toast({
+          title: 'host disconnected',
+          description: 'return to mode selection',
+          status: 'warning',
+          duration: 5000,
+          isClosable: true,
+        });
+      } else {
+        toast({
+          title: 'player disconnected',
+          description: `${playerName} disconnected, return to mode selection`,
+          status: 'warning',
+          duration: 5000,
+          isClosable: true,
+        });
+      }
+    };
+
     socket.on('playerJoined', handlePlayerJoined);
     socket.on('roomReady', handleRoomReady);
     socket.on('hostStartTheGame', handleHostStartTheGame);
+    socket.on('playerDisconnected', handlePlayerDisconnected);
 
     // 特別檢查 opponentScoreUpdate 事件
     socket.on('opponentScoreUpdate', (data) => {
@@ -133,6 +161,7 @@ const HomePageProvider = ({ dbData, profileId }) => {
       socket.off('playerJoined', handlePlayerJoined);
       socket.off('roomReady', handleRoomReady);
       socket.off('hostStartTheGame', handleHostStartTheGame);
+      socket.off('playerDisconnected', handlePlayerDisconnected);
       socket.off('opponentScoreUpdate', handleOpponentScoreUpdate);
       socket.offAny();
     };
