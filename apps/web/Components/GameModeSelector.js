@@ -83,7 +83,7 @@ const GameModeSelector = ({ session }) => {
               </Text>
               <Button
                 onClick={handleSinglePlayerMode}
-                bg="orange.400"
+                bg="red.500"
                 color="white"
                 fontSize="16px"
                 py={6}
@@ -140,7 +140,7 @@ const GameModeSelector = ({ session }) => {
               </Text>
               <Button
                 onClick={handleMultiPlayerMode}
-                bg="orange.400"
+                bg="red.500"
                 color="white"
                 fontSize="16px"
                 py={6}
