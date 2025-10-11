@@ -1,0 +1,9 @@
+{
+    "name": "@breakfast-bonanza/shared",
+    "version": "1.0.0",
+    "private": true,
+    "main": "index.js",
+    "dependencies": {
+        "socket.io-client": "^4.7.5"
+    }
+}

@@ -64,7 +64,11 @@ class GraphQLClient {
   async addScore(userId, score, timerStatus) {
     const mutation = `
       mutation AddScore($userId: ID!, $score: Int!, $timerStatus: String!) {
-        addScore(userId: $userId, score: $score, timerStatus: $timerStatus)
+        addScore(userId: $userId, score: $score, timerStatus: $timerStatus) {
+          success
+          isTopFive
+          isLevel2
+        }
       }
     `;
     return this.query(mutation, { userId, score, timerStatus });
@@ -97,6 +101,21 @@ class GraphQLClient {
       }
     `;
     return this.query(query);
+  }
+
+  async getLeaderboard(limit = 10) {
+    const query = `
+      query GetLeaderboard($limit: Int) {
+        getLeaderboard(limit: $limit) {
+          rank
+          profileId
+          name
+          score
+          updatedAt
+        }
+      }
+    `;
+    return this.query(query, { limit });
   }
 }
 

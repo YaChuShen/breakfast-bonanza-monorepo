@@ -1,4 +1,4 @@
-export const GAME_TIMEER = 10;
+export const GAME_TIMEER = 20;
 export const TRASH_CAN_NO_LIST = ['coffee'];
 export const PLATE_TO_DROP_FOOD = [
   'sunnyEgg',

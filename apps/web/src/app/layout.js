@@ -1,8 +1,9 @@
-import { ReduxProviders } from './reduxProviders';
-import { SessionProviders } from './sessionProviders';
+import ChakraUiProvider from './chakraUiProvider';
 import { Globals } from './GlobalProviders';
 import MixpanelProvider from './mixpanel-provider';
-import ChakraUiProvider from './chakraUiProvider';
+import { ReduxProviders } from './reduxProviders';
+import { SessionProviders } from './sessionProviders';
+import { SocketIoProvider } from './socketIoProvider';
 
 export const metadata = {
   title: {
@@ -48,16 +49,18 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body>
         <main>
-          <ReduxProviders>
-            <SessionProviders>
-              <MixpanelProvider>
-                <ChakraUiProvider>
-                  {children}
-                  <Globals />
-                </ChakraUiProvider>
-              </MixpanelProvider>
-            </SessionProviders>
-          </ReduxProviders>
+          <SessionProviders>
+            <ReduxProviders>
+              <ChakraUiProvider>
+                <MixpanelProvider>
+                  <SocketIoProvider>
+                    {children}
+                    <Globals />
+                  </SocketIoProvider>
+                </MixpanelProvider>
+              </ChakraUiProvider>
+            </ReduxProviders>
+          </SessionProviders>
         </main>
       </body>
     </html>
