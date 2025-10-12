@@ -2,7 +2,6 @@ require("dotenv").config();
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-const { PrismaClient } = require("@prisma/client");
 
 const app = express();
 
@@ -38,9 +37,8 @@ app.get("/health", (req, res) => {
 const server = http.createServer(app);
 const roomHosts = {};
 const userRooms = new Map();
-const rooms = {}; // 儲存房間信息
+const rooms = {};
 
-// 生成隨機房間ID
 function generateRoomId() {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
@@ -207,44 +205,17 @@ io.on("connection", (socket) => {
 
   socket.on("scoreUpdate", ({ roomId, score }) => {
     try {
-      // Validate inputs
       if (!roomId || typeof score !== "number") {
         console.error("Invalid score update data:", { roomId, score });
         return;
       }
-
-      // Check room info
-      if (rooms[roomId]) {
-        console.log(
-          `🏠 Room ${roomId} players:`,
-          rooms[roomId].players.map((p) => `${p.name}(${p.id})`)
-        );
-      }
-
-      // Emit to all other players in the room except the sender
-      console.log(
-        `📤 Server: Emitting opponentScoreUpdate to room ${roomId} (excluding sender ${socket.user.name})`
-      );
-
       const eventData = {
         playerId: socket.user.id,
         playerName: socket.user.name,
         score,
         timestamp: new Date().toISOString(),
       };
-
-      console.log("📋 Server: Event data being sent:", eventData);
-
-      // 檢查房間內的其他 socket
-      const clientsInRoom = io.sockets.adapter.rooms.get(roomId);
-      console.log(
-        "🔍 Server: Clients in room:",
-        clientsInRoom ? Array.from(clientsInRoom) : "No clients"
-      );
-      console.log("🔍 Server: Sender socket ID:", socket.id);
-
       socket.to(roomId).emit("opponentScoreUpdate", eventData);
-      console.log(`✅ Server: opponentScoreUpdate emitted`);
     } catch (error) {
       console.error("Error handling score update:", error);
     }
@@ -257,20 +228,16 @@ io.on("connection", (socket) => {
       Object.fromEntries(userRooms)
     );
 
-    // Get the room ID from our stored information
     const roomId = socket.data.roomId;
 
     if (roomId) {
-      // 🔥 首先判斷斷線用戶是否為房主（在修改任何數據之前）
       let isHostDisconnected = false;
       if (rooms[roomId] && rooms[roomId].hostId === socket.user.id) {
         isHostDisconnected = true;
         console.log("Host disconnected, room:", roomId);
       }
 
-      // Clean up room data
       if (rooms[roomId]) {
-        // Remove player from room
         rooms[roomId].players = rooms[roomId].players.filter(
           (p) => p.id !== socket.user.id
         );
@@ -301,7 +268,6 @@ io.on("connection", (socket) => {
       ) {
         delete roomHosts[roomId];
       }
-
       // Notify other players in the room about the disconnection
       console.log(
         "Emitting disconnect event to room:",
@@ -325,29 +291,6 @@ io.on("connection", (socket) => {
       console.log("No room found for disconnected user");
     }
   });
-
-  // socket.on("gameOver", async ({ roomId, winner, scores }) => {
-  //   try {
-  //     await prisma.match.create({
-  //       data: {
-  //         player1: scores.player1.id,
-  //         player2: scores.player2.id,
-  //         player1Score: scores.player1.score,
-  //         player2Score: scores.player2.score,
-  //         winner: winner,
-  //       },
-  //     });
-
-  //     io.to(roomId).emit("gameEnded", {
-  //       winner,
-  //       scores,
-  //     });
-
-  //     console.log("Match recorded");
-  //   } catch (e) {
-  //     console.error("DB error", e);
-  //   }
-  // });
 });
 
 const PORT = process.env.PORT || 3001;
