@@ -7,8 +7,9 @@ const SignUpButton = ({ onClick, ...props }) => {
     <Button
       borderRadius="lg"
       color="gray.500"
-      onClick={onClick || (() => router.push('auth/signin'))}
+      onClick={onClick || (() => router.push('/register'))}
       variant="outline"
+      fontSize="14px"
       {...props}
     >
       Sign Up

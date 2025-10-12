@@ -5,6 +5,7 @@ import BeginBoard from 'Components/BeginBoard';
 import EndBoard from 'Components/EndBoard';
 import GameModeSelector from 'Components/GameModeSelector';
 import MultiPlayerOptions from 'Components/MultiPlayerOptions';
+import { TOUR_SESSION_KEY } from 'contents/rules';
 import { AnimatePresence } from 'framer-motion';
 import useExpiryTimer from 'hooks/useExpiryTimer';
 import { useEffect, useState } from 'react';
@@ -25,9 +26,9 @@ const GameStageBoard = ({ session, score, isLevel2 }) => {
   }, []);
 
   useEffect(() => {
-    const initialTimerStatus = sessionStorage.getItem('isTour')
-      ? 'readyStarting'
-      : 'modeSelection';
+    const initialTimerStatus = sessionStorage.getItem(TOUR_SESSION_KEY)
+      ? 'modeSelection'
+      : 'initial';
     dispatchAction({
       action: 'timerStatus',
       payload: { status: initialTimerStatus },

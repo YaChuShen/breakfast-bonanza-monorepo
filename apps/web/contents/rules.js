@@ -18,3 +18,4 @@ export const CUSTOMER_OVERTIME = 30000;
 export const MAX_CUSTOMERS = 3;
 export const MAX_PLATE = 3;
 export const TOP_RANKINGS = 5;
+export const TOUR_SESSION_KEY = 'isTour';

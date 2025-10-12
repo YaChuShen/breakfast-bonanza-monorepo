@@ -1,21 +1,23 @@
 'use client';
 
-import { Box, Button, HStack, Image, Text, VStack } from '@chakra-ui/react';
+import { Box, HStack, Image, Text, VStack } from '@chakra-ui/react';
 import { FaRegCopy } from 'react-icons/fa6';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSocket } from 'src/app/socketIoProvider';
 import { clearScore } from 'store/features/customerSlice';
 import { selectGameConfig, timerStatus } from 'store/features/gameConfigSlice';
-import AuthSection from './AuthSection';
+import LoginButton from './LoginButton';
+import LogoutButton from './LogoutButton';
 import MotionBoard from './MotionBoard';
+import ReturnButton from './ReturnButton';
+import ReturnText from './ReturnText';
 import StartButton from './StartButton';
 
 const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
   const dispatch = useDispatch();
   const socket = useSocket();
-  const { roomId, playersInfo, hostId } = useSelector(selectGameConfig);
+  const { roomId, hostId } = useSelector(selectGameConfig);
 
-  // 判斷當前用戶是否為房間主人
   const isHost =
     session &&
     hostId &&
@@ -24,11 +26,13 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
   const copyRoomId = () => {
     if (roomId) {
       navigator.clipboard?.writeText(roomId);
-      // 可以加入 toast 通知
     }
   };
   return (
-    <MotionBoard py={{ md: '2em', xl: '6em' }} px="2em">
+    <MotionBoard py={{ md: '2em', xl: '6em' }} px="2em" pos="relative">
+      <ReturnText
+        onClick={() => dispatch(timerStatus({ status: 'modeSelection' }))}
+      />
       <VStack w="100%" spacing={10} fontWeight={500}>
         <VStack w="100%">
           <Image src="/breakfast_bonanza_logo.svg" w="60%" alt="sereneShen" />
@@ -95,7 +99,7 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
             <Text>You are not logged in</Text>
             <Text>
               {gameMode === 'single'
-                ? 'Login or register to record your game score and enter the排行榜！'
+                ? 'Login or register to record your game score and enter the ranking!'
                 : 'Multi-player mode requires login to use'}
             </Text>
           </VStack>
@@ -112,38 +116,31 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
         {gameMode === 'multi' && isHost && (
           <StartButton
             onClick={() => {
-              // 通知所有玩家開始遊戲
               if (socket && roomId) {
                 socket.emit('gameStart', roomId);
               }
-              // 本地也要開始
               timerStart();
               dispatch(timerStatus({ status: 'gameRunning' }));
-              dispatch(clearScore()); // 🎯 開始遊戲時清空分數
+              dispatch(clearScore());
             }}
           />
         )}
-
         {gameMode === 'waiting' && (
           <VStack spacing={4}>
             <Text fontSize="sm" color="gray.500" textAlign="center">
               Share the room code with friends, let them join the game
             </Text>
-            <Button
+            <ReturnButton
               onClick={() => dispatch(timerStatus({ status: 'modeSelection' }))}
-              variant="outline"
-              colorScheme="gray"
-              size="md"
-              borderRadius="2xl"
-              color="gray.700"
-              _hover={{ bg: 'gray.100' }}
-            >
-              ← Return to mode selection
-            </Button>
+            />
           </VStack>
         )}
-
-        {!session && <AuthSection />}
+        <HStack>
+          {session ? <LogoutButton /> : <LoginButton />}
+          <ReturnButton
+            onClick={() => dispatch(timerStatus({ status: 'modeSelection' }))}
+          />
+        </HStack>
       </VStack>
     </MotionBoard>
   );

@@ -1,17 +1,20 @@
 import { Button, Icon, Text, VStack } from '@chakra-ui/react';
 import { components, TourProvider, useTour } from '@reactour/tour';
+import { TOUR_SESSION_KEY } from 'contents/rules';
 import graphqlClient from 'lib/api-client';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { HiArrowSmLeft, HiArrowSmRight } from 'react-icons/hi';
 import { RxCross2 } from 'react-icons/rx';
 import { useDispatch } from 'react-redux';
 import { timerStatus } from 'store/features/gameConfigSlice';
 
+const MODE_SELECTION_STATUS = 'modeSelection';
+
 const CheckAlreadyRead = () => {
   const { setIsOpen } = useTour();
 
   useEffect(() => {
-    if (window && sessionStorage.getItem('isTour')) {
+    if (window && sessionStorage.getItem(TOUR_SESSION_KEY)) {
       setIsOpen(false);
     }
   }, [setIsOpen]);
@@ -56,24 +59,26 @@ function Content({ content, currentStep }) {
 const Tour = ({ children, profileId }) => {
   const dispatch = useDispatch();
 
-  const onClickStartGame = async () => {
+  const finishTourFlow = useCallback(() => {
+    window.sessionStorage.setItem(TOUR_SESSION_KEY, true);
+    dispatch(timerStatus({ status: MODE_SELECTION_STATUS }));
+  }, [dispatch]);
+
+  const onClickStartGame = useCallback(async () => {
     if (!profileId) {
       console.error('ProfileId is missing, cannot complete tour');
-      window.sessionStorage.setItem('isTour', true);
-      dispatch(timerStatus({ status: 'readyStarting' }));
+      finishTourFlow();
       return;
     }
 
     try {
       await graphqlClient.tour(profileId);
-      window.sessionStorage.setItem('isTour', true);
-      dispatch(timerStatus({ status: 'readyStarting' }));
     } catch (error) {
       console.error('Failed to complete tour:', error);
-      window.sessionStorage.setItem('isTour', true);
-      dispatch(timerStatus({ status: 'readyStarting' }));
+    } finally {
+      finishTourFlow();
     }
-  };
+  }, [profileId, finishTourFlow]);
 
   const steps = [
     {
@@ -103,9 +108,8 @@ const Tour = ({ children, profileId }) => {
       steps={steps}
       disableInteraction
       onClickMask={() => {
-        if (steps) {
-          return;
-        }
+        // 防止點擊遮罩時關閉 tour
+        return;
       }}
       onClickHighlighted={(e) => {
         e.stopPropagation();
@@ -128,44 +132,41 @@ const Tour = ({ children, profileId }) => {
       }}
       disableDotsNavigation={false}
       prevButton={({ currentStep, setCurrentStep }) => {
-        const first = currentStep === 0;
+        const isFirstStep = currentStep === 0;
         return (
           <Button
             variant="ghost"
-            visibility={first ? 'hidden' : 'flex'}
+            visibility={isFirstStep ? 'hidden' : 'visible'}
             isDisabled={false}
             onClick={() => {
-              setCurrentStep((s) => (s === 0 ? 0 : s - 1));
+              setCurrentStep((s) => Math.max(0, s - 1));
             }}
           >
             <Icon as={HiArrowSmLeft} w="1.5em" h="1.5em" color="gray.500" />
           </Button>
         );
       }}
-      nextButton={({
-        currentStep,
-        stepsLength,
-        setIsOpen,
-        setCurrentStep,
-        steps,
-      }) => {
-        const last = currentStep === stepsLength - 1;
+      nextButton={({ currentStep, stepsLength, setIsOpen, setCurrentStep }) => {
+        const isLastStep = currentStep === stepsLength - 1;
+
+        const handleNextClick = async () => {
+          if (isLastStep) {
+            setIsOpen(false);
+            onClickStartGame();
+          } else {
+            setCurrentStep((s) => Math.min(stepsLength - 1, s + 1));
+          }
+        };
+
         return (
           <Button
             mt="0"
             variant="ghost"
             isDisabled={false}
             size="sm"
-            onClick={async () => {
-              if (last) {
-                setIsOpen(false);
-                onClickStartGame();
-              } else {
-                setCurrentStep((s) => (s === steps?.length - 1 ? 0 : s + 1));
-              }
-            }}
+            onClick={handleNextClick}
           >
-            {last ? (
+            {isLastStep ? (
               <Text color="gray.500">Start Game</Text>
             ) : (
               <Icon as={HiArrowSmRight} w="1.5em" h="1.5em" color="gray.500" />
