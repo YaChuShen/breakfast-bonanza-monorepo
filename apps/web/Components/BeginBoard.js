@@ -5,7 +5,7 @@ import { useTour } from '@reactour/tour';
 import mixpanel from 'mixpanel-browser';
 import { signOut } from 'next-auth/react';
 import { useDispatch } from 'react-redux';
-import { timerStatus } from 'store/features/gameConfigSlice';
+import { handleTimerStatus } from 'store/features/gameConfigSlice';
 import AuthSection from './AuthSection';
 import MotionBoard from './MotionBoard';
 import StartButton from './StartButton';
@@ -37,7 +37,7 @@ const BeginBoard = ({ session }) => {
         <StartButton
           onClick={() => {
             setIsOpen(true);
-            dispatch(timerStatus({ status: 'touring' }));
+            dispatch(handleTimerStatus({ status: 'touring' }));
           }}
           text="Continue"
         />

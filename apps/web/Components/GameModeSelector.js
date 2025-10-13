@@ -4,7 +4,7 @@ import { Box, Button, HStack, Image, Text, VStack } from '@chakra-ui/react';
 import { FaUserFriends } from 'react-icons/fa';
 import { MdPerson } from 'react-icons/md';
 import { useDispatch } from 'react-redux';
-import { setGameMode, timerStatus } from 'store/features/gameConfigSlice';
+import { setGameMode, handleTimerStatus } from 'store/features/gameConfigSlice';
 import AuthSection from './AuthSection';
 import MotionBoard from './MotionBoard';
 
@@ -13,12 +13,12 @@ const GameModeSelector = ({ session }) => {
 
   const handleSinglePlayerMode = () => {
     dispatch(setGameMode({ mode: 'single' }));
-    dispatch(timerStatus({ status: 'singlePlayerReady' }));
+    dispatch(handleTimerStatus({ status: 'singlePlayerReady' }));
   };
 
   const handleMultiPlayerMode = () => {
     dispatch(setGameMode({ mode: 'multi' }));
-    dispatch(timerStatus({ status: 'multiPlayerOptions' }));
+    dispatch(handleTimerStatus({ status: 'multiPlayerOptions' }));
   };
 
   return (

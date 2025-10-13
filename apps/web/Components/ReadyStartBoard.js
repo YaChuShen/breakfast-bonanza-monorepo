@@ -5,7 +5,10 @@ import { FaRegCopy } from 'react-icons/fa6';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSocket } from 'src/app/socketIoProvider';
 import { clearScore } from 'store/features/customerSlice';
-import { selectGameConfig, timerStatus } from 'store/features/gameConfigSlice';
+import {
+  handleTimerStatus,
+  selectGameConfig,
+} from 'store/features/gameConfigSlice';
 import LoginButton from './LoginButton';
 import LogoutButton from './LogoutButton';
 import MotionBoard from './MotionBoard';
@@ -16,7 +19,7 @@ import StartButton from './StartButton';
 const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
   const dispatch = useDispatch();
   const socket = useSocket();
-  const { roomId, hostId } = useSelector(selectGameConfig);
+  const { roomId, hostId, timerStatus } = useSelector(selectGameConfig);
 
   const isHost =
     session &&
@@ -31,7 +34,7 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
   return (
     <MotionBoard py={{ md: '2em', xl: '6em' }} px="2em" pos="relative">
       <ReturnText
-        onClick={() => dispatch(timerStatus({ status: 'modeSelection' }))}
+        onClick={() => dispatch(handleTimerStatus({ status: 'modeSelection' }))}
       />
       <VStack w="100%" spacing={10} fontWeight={500}>
         <VStack w="100%">
@@ -51,7 +54,9 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
               </Text>
             )}
             {gameMode === 'multi' && isHost && (
-              <Text>All players are ready! Start the two-player game!</Text>
+              <Text color="gray.500">
+                All players are ready! Start the two-player game!
+              </Text>
             )}
             {gameMode === 'multi' && !isHost && (
               <VStack spacing={2}>
@@ -108,7 +113,7 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
           <StartButton
             onClick={() => {
               timerStart();
-              dispatch(timerStatus({ status: 'gameRunning' }));
+              dispatch(handleTimerStatus({ status: 'gameRunning' }));
               dispatch(clearScore());
             }}
           />
@@ -120,7 +125,7 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
                 socket.emit('gameStart', roomId);
               }
               timerStart();
-              dispatch(timerStatus({ status: 'gameRunning' }));
+              dispatch(handleTimerStatus({ status: 'gameRunning' }));
               dispatch(clearScore());
             }}
           />
@@ -131,16 +136,22 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
               Share the room code with friends, let them join the game
             </Text>
             <ReturnButton
-              onClick={() => dispatch(timerStatus({ status: 'modeSelection' }))}
+              onClick={() =>
+                dispatch(handleTimerStatus({ status: 'modeSelection' }))
+              }
             />
           </VStack>
         )}
-        <HStack>
-          {session ? <LogoutButton /> : <LoginButton />}
-          <ReturnButton
-            onClick={() => dispatch(timerStatus({ status: 'modeSelection' }))}
-          />
-        </HStack>
+        {timerStatus !== 'multiPlayerReady' && (
+          <HStack>
+            {session ? <LogoutButton /> : <LoginButton />}
+            <ReturnButton
+              onClick={() =>
+                dispatch(handleTimerStatus({ status: 'modeSelection' }))
+              }
+            />
+          </HStack>
+        )}
       </VStack>
     </MotionBoard>
   );

@@ -13,7 +13,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useSocket } from 'src/app/socketIoProvider';
-import { setRoomInfo, timerStatus } from 'store/features/gameConfigSlice';
+import { setRoomInfo, handleTimerStatus } from 'store/features/gameConfigSlice';
 import LoginButton from './LoginButton';
 import LogoutButton from './LogoutButton';
 import MotionBoard from './MotionBoard';
@@ -35,7 +35,7 @@ const MultiPlayerOptions = ({ session }) => {
       setIsCreatingRoom(false);
       const currentUserId = session.id || session.profileId;
       dispatch(setRoomInfo({ roomId, hostId: currentUserId }));
-      dispatch(timerStatus({ status: 'waitingForPlayer', roomId }));
+      dispatch(handleTimerStatus({ status: 'waitingForPlayer', roomId }));
       toast({
         title: 'Room created successfully!',
         description: `Room code: ${roomId}`,
@@ -61,7 +61,7 @@ const MultiPlayerOptions = ({ session }) => {
     const handleJoinedRoom = ({ roomId }) => {
       setIsJoiningRoom(false);
       dispatch(setRoomInfo({ roomId }));
-      dispatch(timerStatus({ status: 'multiPlayerReady', roomId }));
+      dispatch(handleTimerStatus({ status: 'multiPlayerReady', roomId }));
       toast({
         title: 'Successfully joined the room!',
         status: 'success',
@@ -167,7 +167,7 @@ const MultiPlayerOptions = ({ session }) => {
   };
 
   const handleBackToModeSelect = () => {
-    dispatch(timerStatus({ status: 'modeSelection' }));
+    dispatch(handleTimerStatus({ status: 'modeSelection' }));
   };
 
   return (

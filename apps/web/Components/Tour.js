@@ -6,7 +6,7 @@ import { useCallback, useEffect } from 'react';
 import { HiArrowSmLeft, HiArrowSmRight } from 'react-icons/hi';
 import { RxCross2 } from 'react-icons/rx';
 import { useDispatch } from 'react-redux';
-import { timerStatus } from 'store/features/gameConfigSlice';
+import { handleTimerStatus } from 'store/features/gameConfigSlice';
 
 const MODE_SELECTION_STATUS = 'modeSelection';
 
@@ -61,7 +61,7 @@ const Tour = ({ children, profileId }) => {
 
   const finishTourFlow = useCallback(() => {
     window.sessionStorage.setItem(TOUR_SESSION_KEY, true);
-    dispatch(timerStatus({ status: MODE_SELECTION_STATUS }));
+    dispatch(handleTimerStatus({ status: MODE_SELECTION_STATUS }));
   }, [dispatch]);
 
   const onClickStartGame = useCallback(async () => {

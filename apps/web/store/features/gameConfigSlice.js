@@ -9,16 +9,16 @@ export const gameConfigSlice = createSlice({
     gameMode: 'single', // 'single' | 'multi'
     roomId: null,
     playersInfo: [],
-    hostId: null, // 房間主人 ID
-    opponentScore: 0, // 對手分數
-    opponentName: '', // 對手名稱
+    hostId: null,
+    opponentScore: 0,
+    opponentName: '',
   },
   reducers: {
     handleTrashCan: (state, action) => {
       const { value } = action.payload;
       state.trashCanOpen = value;
     },
-    timerStatus: (state, action) => {
+    handleTimerStatus: (state, action) => {
       const { status, roomId } = action.payload;
       state.timerStatus = status;
       if (roomId) {
@@ -60,6 +60,7 @@ export const {
   setRoomInfo,
   setOpponentScore,
   resetGameConfig,
+  handleTimerStatus,
 } = gameConfigSlice.actions;
 
 export default gameConfigSlice.reducer;
