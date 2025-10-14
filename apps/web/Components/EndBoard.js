@@ -127,7 +127,7 @@ const EndBoard = ({ score, isRunning, session, isLevel2, ...props }) => {
                   <Text
                     fontSize="4xl"
                     fontWeight="black"
-                    color={getGameResult() === 'WIN' ? 'blcak' : 'gray.400'}
+                    color={getGameResult() === 'WIN' ? 'black' : 'gray.400'}
                   >
                     {getGameResult() === 'WIN' && 'YOU WIN!'}
                     {getGameResult() === 'LOSE' && 'YOU LOSE!'}
