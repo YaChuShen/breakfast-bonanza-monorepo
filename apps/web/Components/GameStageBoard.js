@@ -28,9 +28,6 @@ const GameStageBoard = ({ session, score, isLevel2 }) => {
     setIsLoading(false);
   }, []);
 
-  console.log('timerStatus:', timerStatus);
-  console.log('roomId:', roomId);
-
   useEffect(() => {
     if (roomId) {
       dispatch(handleTimerStatus({ status: 'modeSelection' }));

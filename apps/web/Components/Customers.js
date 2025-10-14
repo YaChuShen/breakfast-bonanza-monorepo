@@ -1,7 +1,6 @@
 import { Center, HStack, Image } from '@chakra-ui/react';
-import { range } from 'lodash';
-import React from 'react';
 import { MAX_CUSTOMERS } from 'contents/rules';
+import { range } from 'lodash';
 import dynamic from 'next/dynamic';
 
 const CustomerTemplate = dynamic(() => import('Components/CustomerTemplate'), {
@@ -17,6 +16,7 @@ const Customers = ({ currentData }) => {
         minW="70em"
         alt="game"
         draggable="false"
+        userSelect="none"
       />
       <HStack
         pos="absolute"

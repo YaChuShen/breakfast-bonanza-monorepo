@@ -122,7 +122,7 @@ const EndBoard = ({ score, isRunning, session, isLevel2, ...props }) => {
                 {...endBoardVariants}
                 bg="white"
                 textAlign="center"
-                minW="600px"
+                minW="400px"
               >
                 <VStack spacing={4}>
                   <Text

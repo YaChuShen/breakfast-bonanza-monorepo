@@ -9,9 +9,9 @@ import {
   handleTimerStatus,
   selectGameConfig,
 } from 'store/features/gameConfigSlice';
+import Board from './Board';
 import LoginButton from './LoginButton';
 import LogoutButton from './LogoutButton';
-import MotionBoard from './MotionBoard';
 import ReturnButton from './ReturnButton';
 import ReturnText from './ReturnText';
 import StartButton from './StartButton';
@@ -32,7 +32,7 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
     }
   };
   return (
-    <MotionBoard py={{ md: '2em', xl: '6em' }} px="2em" pos="relative">
+    <Board py={{ md: '2em', xl: '6em' }} px="2em" pos="relative">
       <ReturnText
         onClick={() => dispatch(handleTimerStatus({ status: 'modeSelection' }))}
       />
@@ -148,7 +148,7 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
           </HStack>
         )}
       </VStack>
-    </MotionBoard>
+    </Board>
   );
 };
 

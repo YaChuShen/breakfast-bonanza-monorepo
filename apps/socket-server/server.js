@@ -207,6 +207,24 @@ io.on("connection", (socket) => {
     }
   });
 
+  socket.on("gameEnd", ({ roomId }) => {
+    try {
+      if (!roomId) {
+        console.error("Invalid game end data:", { roomId });
+        return;
+      }
+      const eventData = {
+        playerId: socket.user.id,
+        playerName: socket.user.name,
+        timestamp: new Date().toISOString(),
+      };
+      // 通知房間內的其他玩家遊戲結束
+      socket.to(roomId).emit("opponentGameEnd", eventData);
+    } catch (error) {
+      console.error("Error handling game end:", error);
+    }
+  });
+
   socket.on("disconnect", () => {
     const roomId = socket.data.roomId;
 

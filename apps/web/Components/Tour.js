@@ -37,6 +37,7 @@ function Close({ onClickStartGame }) {
       onClick={() => {
         setIsOpen(false);
         onClickStartGame();
+        window.sessionStorage.setItem(TOUR_SESSION_KEY, true);
       }}
       style={{ position: 'absolute', right: 15, top: 10 }}
     >
@@ -108,7 +109,6 @@ const Tour = ({ children, profileId }) => {
       steps={steps}
       disableInteraction
       onClickMask={() => {
-        // 防止點擊遮罩時關閉 tour
         return;
       }}
       onClickHighlighted={(e) => {

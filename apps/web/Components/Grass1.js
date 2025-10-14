@@ -1,7 +1,6 @@
-import React from 'react';
-import Media from './Media';
 import { Image } from '@chakra-ui/react';
 import { BigTree } from 'helpers/rwd';
+import Media from './Media';
 
 const Grass1 = () => {
   return (
@@ -15,6 +14,7 @@ const Grass1 = () => {
         bottom={BigTree}
         zIndex={1}
         draggable={false}
+        userSelect="none"
       />
     </Media>
   );
