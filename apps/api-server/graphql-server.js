@@ -15,7 +15,7 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://localhost:3001",
-      "https://breakfast-bonanza-monorepo-web.vercel.app/", // 如果有部署到 Vercel
+      "https://breakfast-bonanza-monorepo-web.vercel.app",
     ].filter(Boolean),
     credentials: true,
   })
