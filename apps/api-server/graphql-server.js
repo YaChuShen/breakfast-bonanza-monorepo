@@ -16,8 +16,11 @@ app.use(
       "http://localhost:3000",
       "http://localhost:3001",
       "https://breakfast-bonanza-monorepo-web.vercel.app",
+      "https://breakfast-bonanza-express-api.onrender.com",
     ].filter(Boolean),
     credentials: true,
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
