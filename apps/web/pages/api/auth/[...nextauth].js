@@ -95,35 +95,35 @@ export const NextAuthOptions = NextAuth({
             console.log('Invalid password');
             return null;
           }
+
+          console.log('Successful login for user:', user.email);
+
+          const token = jwt.sign(
+            {
+              email: user.email,
+              id: user.id,
+            },
+            process.env.NEXTAUTH_SECRET,
+            { expiresIn: '3d' }
+          );
+
+          return {
+            profileId: user.id,
+            email: user.email,
+            name: user.name || user.email, // 優先使用 name，如果沒有則使用 email
+            avatar_url: user.avatar_url,
+            islevel2: user.islevel2,
+            highest_score: user.highest_score,
+            latest_score: user.latest_score,
+            total_games: user.total_games,
+            total_score: user.total_score,
+            lastplaytime: user.lastplaytime,
+            token,
+          };
         } catch (error) {
           console.error('Authorization error:', error);
           return null;
         }
-
-        console.log('Successful login for user:', user.email);
-
-        const token = jwt.sign(
-          {
-            email: user.email,
-            id: user.id,
-          },
-          process.env.NEXTAUTH_SECRET,
-          { expiresIn: '3d' }
-        );
-
-        return {
-          profileId: user.id,
-          email: user.email,
-          name: user.name || user.email, // 優先使用 name，如果沒有則使用 email
-          avatar_url: user.avatar_url,
-          islevel2: user.islevel2,
-          highest_score: user.highest_score,
-          latest_score: user.latest_score,
-          total_games: user.total_games,
-          total_score: user.total_score,
-          lastplaytime: user.lastplaytime,
-          token,
-        };
       },
     }),
     GoogleProvider({
