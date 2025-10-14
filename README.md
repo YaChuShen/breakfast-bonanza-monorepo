@@ -2,7 +2,7 @@
 
 A fast-paced multiplayer breakfast cooking game built with modern full-stack architecture. Players race against time to prepare breakfast orders while competing on a global leaderboard.
 
-Live Demo [https://game-angp-nzi6zijkq-annshens-projects.vercel.app](https://game-angp-nzi6zijkq-annshens-projects.vercel.app/?utm_source=readme) 
+Live Demo [https://breakfast-bonanza-monorepo-web.vercel.app/](https://breakfast-bonanza-monorepo-web.vercel.app/?utm_source=readme) 
 
 ## 🍳 System Features
 ### Scalable Monorepo Architecture
@@ -16,7 +16,46 @@ This modular design enables horizontal scaling of real-time servers without impa
 
 
 ### Backend Services Architecture
-/放圖
+
+```mermaid
+flowchart TD
+  subgraph "Client Layer"
+    NextJS["Next.js Web App — Port 3000 — SSR and client-side React"]
+  end
+
+  subgraph "External Services"
+    Mixpanel["Mixpanel Analytics"]
+    GoogleOAuth["Google OAuth"]
+  end
+
+  subgraph "API Layer"
+    GraphQL["GraphQL API Server — Port 3002 — Express and express-graphql"]
+    SocketIO["Socket.IO Server — Real-time WebSocket"]
+    SupabaseClient["Supabase Client"]
+    JWT_GQL["JWT Validation (GraphQL)"]
+    JWT_WS["JWT Validation (WebSocket)"]
+  end
+
+  subgraph "Database Layer"
+    SupabaseDB["Supabase PostgreSQL — user_profiles, scores, leaderboard, RPC functions"]
+  end
+
+  NextJS -->|GraphQL queries or mutations| GraphQL
+  NextJS -->|Real-time events| SocketIO
+  NextJS -->|Track events| Mixpanel
+  NextJS -->|OAuth flow| GoogleOAuth
+
+  GraphQL -->|Uses| SupabaseClient
+  SupabaseClient -->|Reads and writes| SupabaseDB
+
+  SocketIO -->|Reads and writes| SupabaseDB
+  SocketIO --> GraphQL
+  GraphQL --> SocketIO
+
+  GraphQL -->|Validates JWT| JWT_GQL
+  SocketIO -->|Validates JWT| JWT_WS
+```
+
 
 ## 🛠️ Tech Stack
 - **Frontend**: Next.js, React, Chakra UI, Framer Motion
