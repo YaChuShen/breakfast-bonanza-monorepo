@@ -17,7 +17,7 @@ import {
   resetGameConfig,
   setOpponentScore,
   setRoomInfo,
-  timerStatus,
+  handleTimerStatus,
 } from 'store/features/gameConfigSlice';
 
 const HomePageProvider = ({ dbData, profileId }) => {
@@ -89,12 +89,12 @@ const HomePageProvider = ({ dbData, profileId }) => {
       }
 
       if (canStart) {
-        dispatch(timerStatus({ status: 'multiPlayerReady' }));
+        dispatch(handleTimerStatus({ status: 'multiPlayerReady' }));
       }
     };
 
     const handleHostStartTheGame = () => {
-      dispatch(timerStatus({ status: 'gameRunning' }));
+      dispatch(handleTimerStatus({ status: 'gameRunning' }));
       dispatch(clearScore());
       dispatch(setOpponentScore({ score: 0 }));
       toast({

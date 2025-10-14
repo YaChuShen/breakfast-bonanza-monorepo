@@ -9,23 +9,18 @@ import {
   VStack,
 } from '@chakra-ui/react';
 import Timer from 'Components/Timer';
+import mixpanel from 'mixpanel-browser';
 import { signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { MdArrowDropDown } from 'react-icons/md';
 import { useSelector } from 'react-redux';
 import { selectGameConfig } from 'store/features/gameConfigSlice';
 
 const ScoreSection = ({ score, seconds, minutes, isSingin, session }) => {
   const { isOpen, onToggle, onOpen } = useDisclosure();
-  const router = useRouter();
-  const { gameMode, opponentScore, opponentName, hostId, playersInfo } =
+  const { gameMode, opponentScore, opponentName } =
     useSelector(selectGameConfig);
 
   const isMultiPlayer = gameMode === 'multi';
-  const isHost =
-    session &&
-    hostId &&
-    (session.id === hostId || session.profileId === hostId);
 
   if (isMultiPlayer) {
     return (
@@ -184,7 +179,10 @@ const ScoreSection = ({ score, seconds, minutes, isSingin, session }) => {
                     _hover={{
                       color: 'gray.400',
                     }}
-                    onClick={() => signOut()}
+                    onClick={() => {
+                      signOut();
+                      mixpanel.reset();
+                    }}
                   >
                     Logout
                   </Text>

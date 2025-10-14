@@ -5,41 +5,51 @@ import BeginBoard from 'Components/BeginBoard';
 import EndBoard from 'Components/EndBoard';
 import GameModeSelector from 'Components/GameModeSelector';
 import MultiPlayerOptions from 'Components/MultiPlayerOptions';
+import { TOUR_SESSION_KEY } from 'contents/rules';
 import { AnimatePresence } from 'framer-motion';
 import useExpiryTimer from 'hooks/useExpiryTimer';
 import { useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { selectGameConfig } from 'store/features/gameConfigSlice';
-import { dispatchAction } from '../helpers/dispatchAction';
+import { useDispatch, useSelector } from 'react-redux';
+import {
+  handleTimerStatus,
+  selectGameConfig,
+} from 'store/features/gameConfigSlice';
 import Loading from './Loading';
 import ReadyStartBoard from './ReadyStartBoard';
 import ScoreSection from './ScoreSection';
 
 const GameStageBoard = ({ session, score, isLevel2 }) => {
   const { seconds, minutes, isRunning, timerStart } = useExpiryTimer();
-  const { timerStatus } = useSelector(selectGameConfig);
+  const { timerStatus, roomId } = useSelector(selectGameConfig);
   const [isLoading, setIsLoading] = useState(true);
+  const dispatch = useDispatch();
 
   useEffect(() => {
     setIsLoading(false);
   }, []);
 
+  console.log('timerStatus:', timerStatus);
+  console.log('roomId:', roomId);
+
   useEffect(() => {
-    const initialTimerStatus = sessionStorage.getItem('isTour')
-      ? 'readyStarting'
-      : 'modeSelection';
-    dispatchAction({
-      action: 'timerStatus',
-      payload: { status: initialTimerStatus },
-    });
+    if (roomId) {
+      dispatch(handleTimerStatus({ status: 'modeSelection' }));
+    }
+    if (timerStatus !== 'multiPlayerReady') {
+      const initialTimerStatus = sessionStorage.getItem(TOUR_SESSION_KEY)
+        ? 'modeSelection'
+        : 'initial';
+
+      console.log('initialTimerStatus:', initialTimerStatus);
+      dispatch(handleTimerStatus({ status: initialTimerStatus }));
+    }
   }, []);
 
-  // 監聽多人遊戲開始事件
+  // multi player game start
   useEffect(() => {
     const handleMultiPlayerGameStart = () => {
       timerStart();
     };
-
     window.addEventListener('multiPlayerGameStart', handleMultiPlayerGameStart);
     return () => {
       window.removeEventListener(

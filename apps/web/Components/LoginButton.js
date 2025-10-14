@@ -11,6 +11,7 @@ const LoginButton = ({ ...props }) => {
       borderColor="red.500"
       variant="outline"
       _hover={{ bg: 'red.300', color: 'white' }}
+      fontSize="14px"
       {...props}
     >
       Login

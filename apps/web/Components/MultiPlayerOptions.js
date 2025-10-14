@@ -13,8 +13,12 @@ import {
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useSocket } from 'src/app/socketIoProvider';
-import { setRoomInfo, timerStatus } from 'store/features/gameConfigSlice';
+import { setRoomInfo, handleTimerStatus } from 'store/features/gameConfigSlice';
+import LoginButton from './LoginButton';
+import LogoutButton from './LogoutButton';
 import MotionBoard from './MotionBoard';
+import ReturnButton from './ReturnButton';
+import ReturnText from './ReturnText';
 
 const MultiPlayerOptions = ({ session }) => {
   const dispatch = useDispatch();
@@ -27,12 +31,11 @@ const MultiPlayerOptions = ({ session }) => {
   useEffect(() => {
     if (!socket) return;
 
-    // 創建房間成功
     const handleRoomCreated = ({ roomId }) => {
       setIsCreatingRoom(false);
       const currentUserId = session.id || session.profileId;
       dispatch(setRoomInfo({ roomId, hostId: currentUserId }));
-      dispatch(timerStatus({ status: 'waitingForPlayer', roomId }));
+      dispatch(handleTimerStatus({ status: 'waitingForPlayer', roomId }));
       toast({
         title: 'Room created successfully!',
         description: `Room code: ${roomId}`,
@@ -43,7 +46,6 @@ const MultiPlayerOptions = ({ session }) => {
       navigator.clipboard?.writeText(roomId);
     };
 
-    // 創建房間失敗
     const handleCreateRoomError = (error) => {
       setIsCreatingRoom(false);
       toast({
@@ -59,7 +61,7 @@ const MultiPlayerOptions = ({ session }) => {
     const handleJoinedRoom = ({ roomId }) => {
       setIsJoiningRoom(false);
       dispatch(setRoomInfo({ roomId }));
-      dispatch(timerStatus({ status: 'multiPlayerReady', roomId }));
+      dispatch(handleTimerStatus({ status: 'multiPlayerReady', roomId }));
       toast({
         title: 'Successfully joined the room!',
         status: 'success',
@@ -80,13 +82,11 @@ const MultiPlayerOptions = ({ session }) => {
       });
     };
 
-    // 綁定事件監聽器
     socket.on('roomCreated', handleRoomCreated);
     socket.on('createRoomError', handleCreateRoomError);
     socket.on('joinedRoom', handleJoinedRoom);
     socket.on('joinRoomError', handleJoinRoomError);
 
-    // 清理事件監聽器
     return () => {
       socket.off('roomCreated', handleRoomCreated);
       socket.off('createRoomError', handleCreateRoomError);
@@ -167,11 +167,12 @@ const MultiPlayerOptions = ({ session }) => {
   };
 
   const handleBackToModeSelect = () => {
-    dispatch(timerStatus({ status: 'modeSelection' }));
+    dispatch(handleTimerStatus({ status: 'modeSelection' }));
   };
 
   return (
-    <MotionBoard py={{ md: '2em', xl: '3em' }} px="2em">
+    <MotionBoard py={{ md: '2em', xl: '3em' }} px="2em" pos="relative">
+      <ReturnText onClick={handleBackToModeSelect} />
       <VStack w="100%" spacing={8} fontWeight={500}>
         <VStack w="100%" spacing={5}>
           <Image
@@ -230,17 +231,13 @@ const MultiPlayerOptions = ({ session }) => {
                   Create a new room
                 </Text>
               </HStack>
-
-              {/* 描述文字 */}
               <Text color="gray.600" fontSize="14px" lineHeight="1.6" flex={1}>
                 Invite friends to join the battle
               </Text>
-
-              {/* 創建按鈕 */}
               <Button
                 onClick={handleCreateRoom}
                 isLoading={isCreatingRoom}
-                loadingText="建立中..."
+                loadingText="Creating..."
                 bg="red.500"
                 color="white"
                 fontSize="16px"
@@ -251,6 +248,7 @@ const MultiPlayerOptions = ({ session }) => {
                 _active={{ transform: 'scale(0.98)' }}
                 transition="all 0.2s"
                 size="lg"
+                disabled={!session}
               >
                 Create
               </Button>
@@ -283,7 +281,7 @@ const MultiPlayerOptions = ({ session }) => {
                 Room code
               </Text>
               <Input
-                placeholder="Enter 6-digit room code..."
+                placeholder="Enter 6-digit code..."
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value)}
                 size="lg"
@@ -293,6 +291,7 @@ const MultiPlayerOptions = ({ session }) => {
                 textAlign="center"
                 fontSize="16px"
                 fontWeight={500}
+                _placeholder={{ color: 'gray.500', fontSize: '12px' }}
                 _hover={{ borderColor: 'orange.300', bg: 'white' }}
                 _focus={{
                   borderColor: 'orange.400',
@@ -316,32 +315,22 @@ const MultiPlayerOptions = ({ session }) => {
                 transition="all 0.2s"
                 size="lg"
                 mt="auto"
+                disabled={!session}
               >
                 Join
               </Button>
             </VStack>
           </Box>
         </HStack>
-        <Button
-          onClick={handleBackToModeSelect}
-          variant="outline"
-          colorScheme="gray"
-          size="md"
-          _hover={{ bg: 'gray.100' }}
-          fontSize="14px"
-          color="gray.700"
-          borderRadius="xl"
-        >
-          ← Return to Mode Selection
-        </Button>
-
         {!session && (
-          <VStack textAlign="center" spacing={2}>
-            <Text fontSize="sm" color="red.500" fontWeight={600}>
-              ⚠️ Two-Player Mode requires login first
-            </Text>
-          </VStack>
+          <Text fontSize="sm" color="red.500" fontWeight={600}>
+            ⚠️ Two-Player Mode requires login first
+          </Text>
         )}
+        <HStack w="100%" justify="center" spacing={2}>
+          {session ? <LogoutButton /> : <LoginButton />}
+          <ReturnButton onClick={handleBackToModeSelect} />
+        </HStack>
       </VStack>
     </MotionBoard>
   );

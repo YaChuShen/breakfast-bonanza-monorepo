@@ -24,10 +24,8 @@ export const SocketIoProvider = ({ children }: { children: ReactNode }) => {
         const socketUrl =
           process.env.NEXT_PUBLIC_SOCKET_URL_LOCAL || 'http://localhost:3001';
 
-        console.log(socketUrl);
         const socket = await connectSocket(session, socketUrl);
         setSocket(socket);
-        // Cleanup function
         return () => {
           if (socket) {
             socket.disconnect();

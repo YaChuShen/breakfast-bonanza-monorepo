@@ -1,15 +1,14 @@
 'use client';
 
-import { Button, Image, Text, VStack } from '@chakra-ui/react';
-import React from 'react';
-import { signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
-import { useDispatch } from 'react-redux';
-import { timerStatus } from 'store/features/gameConfigSlice';
+import { Image, Text, VStack } from '@chakra-ui/react';
 import { useTour } from '@reactour/tour';
-import MotionBoard from './MotionBoard';
 import mixpanel from 'mixpanel-browser';
-import LoginButton from './LoginButton';
+import { signOut } from 'next-auth/react';
+import { useDispatch } from 'react-redux';
+import { handleTimerStatus } from 'store/features/gameConfigSlice';
+import AuthSection from './AuthSection';
+import MotionBoard from './MotionBoard';
+import StartButton from './StartButton';
 
 const BeginBoard = ({ session }) => {
   const dispatch = useDispatch();
@@ -35,24 +34,13 @@ const BeginBoard = ({ session }) => {
             </Text>
           </>
         )}
-        <Button
+        <StartButton
           onClick={() => {
             setIsOpen(true);
-            dispatch(timerStatus({ status: 'touring' }));
+            dispatch(handleTimerStatus({ status: 'touring' }));
           }}
-          bg="red.500"
-          color="white"
-          fontSize="24px"
-          py="5"
-          px="12"
-          size="xl"
-          borderRadius="2xl"
-          letterSpacing="1px"
-          _hover={{ bg: 'red.300', color: 'white' }}
-          fontWeight={900}
-        >
-          Continue
-        </Button>
+          text="Continue"
+        />
         <VStack spacing={0}>
           {session ? (
             <Text
@@ -66,7 +54,7 @@ const BeginBoard = ({ session }) => {
               logout
             </Text>
           ) : (
-            <LoginButton />
+            <AuthSection />
           )}
         </VStack>
       </VStack>
