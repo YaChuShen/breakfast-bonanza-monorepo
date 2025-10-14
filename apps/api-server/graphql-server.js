@@ -1,4 +1,5 @@
 // Express + GraphQL Server (強大版本)
+import { LEVEL2_SCORE } from "@breakfast-bonanza/shared/rules";
 import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcrypt";
 import cors from "cors";
@@ -9,7 +10,6 @@ import { graphqlHTTP } from "express-graphql";
 import { buildSchema } from "graphql";
 
 const app = express();
-
 app.use(
   cors({
     origin: [
@@ -261,7 +261,6 @@ const root = {
     // Supabase RPC 返回的布爾值直接就是 data
     const isTopFive = isTopFiveResult === true;
 
-    const LEVEL2_SCORE = 1000;
     const isLevel2 = score >= LEVEL2_SCORE;
 
     const { error: updateError } = await supabase
