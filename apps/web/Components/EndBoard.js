@@ -83,7 +83,8 @@ const EndBoard = ({ score, isRunning, session, isLevel2, ...props }) => {
     if (
       score !== undefined &&
       timerStatus === 'end' &&
-      !scoreSubmittedRef.current
+      !scoreSubmittedRef.current &&
+      gameMode !== 'multi'
     ) {
       checkScoreSubmitted();
     }

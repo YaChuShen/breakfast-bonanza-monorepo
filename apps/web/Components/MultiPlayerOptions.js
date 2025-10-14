@@ -13,7 +13,7 @@ import {
 import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useSocket } from 'src/app/socketIoProvider';
-import { setRoomInfo, handleTimerStatus } from 'store/features/gameConfigSlice';
+import { handleTimerStatus, setRoomInfo } from 'store/features/gameConfigSlice';
 import LoginButton from './LoginButton';
 import LogoutButton from './LogoutButton';
 import MotionBoard from './MotionBoard';
@@ -303,7 +303,7 @@ const MultiPlayerOptions = ({ session }) => {
               <Button
                 onClick={handleJoinRoom}
                 isLoading={isJoiningRoom}
-                loadingText="加入中..."
+                loadingText="Joining..."
                 bg="red.500"
                 color="white"
                 fontSize="16px"
