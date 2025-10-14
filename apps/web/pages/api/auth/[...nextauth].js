@@ -19,7 +19,12 @@ export const NextAuthOptions = NextAuth({
   pages: {
     signIn: '/auth/signin',
   },
-  debug: true,
+  debug: false, // 關閉 debug 模式以提升效能
+  logger: {
+    error: console.error,
+    warn: console.warn,
+    debug: () => {}, // 關閉 debug 日誌
+  },
   providers: [
     CredentialsProvider({
       id: 'credentials',
@@ -38,26 +43,60 @@ export const NextAuthOptions = NextAuth({
 
         const { password, email } = credentials;
 
-        const { data: user } = await supabase
-          .from('user_profiles')
-          .select(
-            'id, email, name, avatar_url, islevel2, highest_score, latest_score, total_games, total_score, lastplaytime'
-          )
-          .eq('email', email)
-          .single();
+        try {
+          // 添加超時處理
+          const userPromise = supabase
+            .from('user_profiles')
+            .select(
+              'id, email, name, avatar_url, islevel2, highest_score, latest_score, total_games, total_score, lastplaytime'
+            )
+            .eq('email', email)
+            .single();
 
-        const { data: userCredentials } = await supabase
-          .from('user_credentials')
-          .select('password_hash')
-          .eq('user_id', user.id)
-          .single();
+          const { data: user, error: userError } = await Promise.race([
+            userPromise,
+            new Promise((_, reject) =>
+              setTimeout(() => reject(new Error('User query timeout')), 5000)
+            ),
+          ]);
 
-        const isValid = await bcrypt.compare(
-          password,
-          userCredentials.password_hash
-        );
-        if (!isValid) {
-          console.log('Invalid password');
+          if (userError || !user) {
+            console.log('User not found or error:', userError);
+            return null;
+          }
+
+          const credentialsPromise = supabase
+            .from('user_credentials')
+            .select('password_hash')
+            .eq('user_id', user.id)
+            .single();
+
+          const { data: userCredentials, error: credError } =
+            await Promise.race([
+              credentialsPromise,
+              new Promise((_, reject) =>
+                setTimeout(
+                  () => reject(new Error('Credentials query timeout')),
+                  5000
+                )
+              ),
+            ]);
+
+          if (credError || !userCredentials) {
+            console.log('Credentials not found or error:', credError);
+            return null;
+          }
+
+          const isValid = await bcrypt.compare(
+            password,
+            userCredentials.password_hash
+          );
+          if (!isValid) {
+            console.log('Invalid password');
+            return null;
+          }
+        } catch (error) {
+          console.error('Authorization error:', error);
           return null;
         }
 

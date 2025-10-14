@@ -1,6 +1,6 @@
 import { io } from "socket.io-client";
 
-export const connectSocket = async (session, socketUrl) => {
+export const connectSocket = (session, socketUrl) => {
   const socket = io(socketUrl, {
     auth: {
       token: session?.profileId || session?.user?.id || session?.sub,

@@ -26,8 +26,37 @@ export const SocketIoProvider = ({ children }: { children: ReactNode }) => {
             ? process.env.NEXT_PUBLIC_SOCKET_URL
             : process.env.NEXT_PUBLIC_SOCKET_URL_LOCAL;
 
-        const socket = await connectSocket(session, socketUrl);
+        if (!socketUrl) {
+          console.error('Socket URL not configured');
+          return;
+        }
+
+        // 創建 Socket 連線
+        const socket = connectSocket(session, socketUrl);
+
+        // 添加連線超時處理
+        const connectWithTimeout = () => {
+          return new Promise((resolve, reject) => {
+            const timeout = setTimeout(() => {
+              socket.disconnect();
+              reject(new Error('Socket connection timeout'));
+            }, 10000); // 10秒超時
+
+            socket.on('connect', () => {
+              clearTimeout(timeout);
+              resolve(socket);
+            });
+
+            socket.on('connect_error', (error) => {
+              clearTimeout(timeout);
+              reject(error);
+            });
+          });
+        };
+
+        await connectWithTimeout();
         setSocket(socket);
+
         return () => {
           if (socket) {
             socket.disconnect();
@@ -36,6 +65,8 @@ export const SocketIoProvider = ({ children }: { children: ReactNode }) => {
         };
       } catch (error) {
         console.error('Failed to initialize socket:', error);
+        // 如果 WebSocket 連線失敗，不要阻止應用程式運行
+        setSocket(null);
       }
     };
 
