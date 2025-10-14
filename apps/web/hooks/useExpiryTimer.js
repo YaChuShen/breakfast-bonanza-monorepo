@@ -17,10 +17,7 @@ const useExpiryTimer = () => {
   const { gameMode, roomId } = useSelector(selectGameConfig);
 
   const handleGameEnd = () => {
-    // 更新當前玩家的遊戲狀態
     dispatch(handleTimerStatus({ status: 'end' }));
-
-    // 如果是多玩家模式，通知對方玩家遊戲結束
     if (gameMode === 'multi' && socket && roomId && session) {
       socket.emit('gameEnd', {
         roomId,

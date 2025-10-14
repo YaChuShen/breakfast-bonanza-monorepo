@@ -218,7 +218,6 @@ io.on("connection", (socket) => {
         playerName: socket.user.name,
         timestamp: new Date().toISOString(),
       };
-      // 通知房間內的其他玩家遊戲結束
       socket.to(roomId).emit("opponentGameEnd", eventData);
     } catch (error) {
       console.error("Error handling game end:", error);
