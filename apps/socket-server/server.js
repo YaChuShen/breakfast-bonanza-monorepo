@@ -51,6 +51,7 @@ const io = new Server(server, {
       "http://localhost:3002",
       "http://localhost:3003",
       "https://breakfast-bonanza-socket-server.onrender.com",
+      "https://breakfast-bonanza-monorepo-web.vercel.app/",
     ],
     methods: ["GET", "POST"],
     credentials: true,
@@ -222,12 +223,6 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
-    console.log(`User ${socket.user.name} disconnected`);
-    console.log(
-      "Current userRooms before cleanup:",
-      Object.fromEntries(userRooms)
-    );
-
     const roomId = socket.data.roomId;
 
     if (roomId) {
@@ -247,17 +242,6 @@ io.on("connection", (socket) => {
           delete rooms[roomId];
           delete roomHosts[roomId];
           console.log(`房間 ${roomId} 已刪除（無玩家）`);
-        } else if (isHostDisconnected) {
-          // If host disconnected and there are remaining players, make first one the new host
-          const newHost = rooms[roomId].players[0];
-          rooms[roomId].hostId = newHost.id;
-          rooms[roomId].hostName = newHost.name;
-          roomHosts[roomId] = {
-            hostId: newHost.id,
-            hostName: newHost.name,
-            hostEmail: newHost.email,
-          };
-          console.log(`新房主: ${newHost.name}`);
         }
       }
 

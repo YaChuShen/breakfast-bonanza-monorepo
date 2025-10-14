@@ -22,7 +22,9 @@ export const SocketIoProvider = ({ children }: { children: ReactNode }) => {
 
       try {
         const socketUrl =
-          process.env.NEXT_PUBLIC_SOCKET_URL_LOCAL || 'http://localhost:3001';
+          process.env.NODE_ENV === 'production'
+            ? process.env.NEXT_PUBLIC_SOCKET_URL
+            : process.env.NEXT_PUBLIC_SOCKET_URL_LOCAL;
 
         const socket = await connectSocket(session, socketUrl);
         setSocket(socket);
