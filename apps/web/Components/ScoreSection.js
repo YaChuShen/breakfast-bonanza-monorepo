@@ -11,15 +11,13 @@ import {
 import Timer from 'Components/Timer';
 import mixpanel from 'mixpanel-browser';
 import { signOut } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
 import { MdArrowDropDown } from 'react-icons/md';
 import { useSelector } from 'react-redux';
 import { selectGameConfig } from 'store/features/gameConfigSlice';
 
 const ScoreSection = ({ score, seconds, minutes, isSingin, session }) => {
   const { isOpen, onToggle, onOpen } = useDisclosure();
-  const router = useRouter();
-  const { gameMode, opponentScore, opponentName, hostId, playersInfo } =
+  const { gameMode, opponentScore, opponentName } =
     useSelector(selectGameConfig);
 
   const isMultiPlayer = gameMode === 'multi';

@@ -135,11 +135,6 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
             <Text fontSize="sm" color="gray.500" textAlign="center">
               Share the room code with friends, let them join the game
             </Text>
-            <ReturnButton
-              onClick={() =>
-                dispatch(handleTimerStatus({ status: 'modeSelection' }))
-              }
-            />
           </VStack>
         )}
         {timerStatus !== 'multiPlayerReady' && (
