@@ -1,10 +1,10 @@
 'use client';
 
 import { Box, Button, Divider, HStack, Text, VStack } from '@chakra-ui/react';
-import { LEVEL2_SCORE } from 'contents/rules';
 import { once } from 'lodash';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
+import { LEVEL2_SCORE } from '@breakfast-bonanza/shared/rules';
 import graphqlClient from 'lib/api-client';
 import { trackEvent } from 'lib/mixpanel';
 import { useRouter } from 'next/navigation';
