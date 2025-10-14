@@ -51,6 +51,7 @@ const io = new Server(server, {
       "http://localhost:3002",
       "http://localhost:3003",
       "https://breakfast-bonanza-socket-server.onrender.com",
+      "https://breakfast-bonanza-monorepo-web.vercel.app",
     ],
     methods: ["GET", "POST"],
     credentials: true,
