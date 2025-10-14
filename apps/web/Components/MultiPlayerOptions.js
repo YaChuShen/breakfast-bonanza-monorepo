@@ -14,9 +14,9 @@ import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useSocket } from 'src/app/socketIoProvider';
 import { handleTimerStatus, setRoomInfo } from 'store/features/gameConfigSlice';
+import Board from './Board';
 import LoginButton from './LoginButton';
 import LogoutButton from './LogoutButton';
-import MotionBoard from './MotionBoard';
 import ReturnButton from './ReturnButton';
 import ReturnText from './ReturnText';
 
@@ -171,7 +171,7 @@ const MultiPlayerOptions = ({ session }) => {
   };
 
   return (
-    <MotionBoard py={{ md: '2em', xl: '3em' }} px="2em" pos="relative">
+    <Board py={{ md: '2em', xl: '3em' }} px="2em" pos="relative">
       <ReturnText onClick={handleBackToModeSelect} />
       <VStack w="100%" spacing={8} fontWeight={500}>
         <VStack w="100%" spacing={5}>
@@ -332,7 +332,7 @@ const MultiPlayerOptions = ({ session }) => {
           <ReturnButton onClick={handleBackToModeSelect} />
         </HStack>
       </VStack>
-    </MotionBoard>
+    </Board>
   );
 };
 

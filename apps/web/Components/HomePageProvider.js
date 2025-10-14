@@ -14,10 +14,10 @@ import {
   selectCustomer,
 } from 'store/features/customerSlice';
 import {
+  handleTimerStatus,
   resetGameConfig,
   setOpponentScore,
   setRoomInfo,
-  handleTimerStatus,
 } from 'store/features/gameConfigSlice';
 
 const HomePageProvider = ({ dbData, profileId }) => {
@@ -71,7 +71,7 @@ const HomePageProvider = ({ dbData, profileId }) => {
       toast({
         title: 'New player joined!',
         description: `${playerName} joined the room`,
-        status: 'warning',
+        status: 'success',
         duration: 3000,
         isClosable: true,
       });
@@ -115,6 +115,14 @@ const HomePageProvider = ({ dbData, profileId }) => {
       }
     };
 
+    const handleOpponentGameEnd = ({ playerId }) => {
+      const isOpponentEnd = playerId !== (session?.id || session?.profileId);
+
+      if (isOpponentEnd) {
+        dispatch(handleTimerStatus({ status: 'end' }));
+      }
+    };
+
     const handlePlayerDisconnected = ({
       playerId,
       playerName,
@@ -133,7 +141,7 @@ const HomePageProvider = ({ dbData, profileId }) => {
           title: 'host disconnected',
           description: 'return to mode selection',
           status: 'warning',
-          duration: 5000,
+          duration: 3000,
           isClosable: true,
         });
       } else {
@@ -141,7 +149,7 @@ const HomePageProvider = ({ dbData, profileId }) => {
           title: 'player disconnected',
           description: `${playerName} disconnected, return to mode selection`,
           status: 'warning',
-          duration: 5000,
+          duration: 3000,
           isClosable: true,
         });
       }
@@ -157,12 +165,16 @@ const HomePageProvider = ({ dbData, profileId }) => {
       handleOpponentScoreUpdate(data);
     });
 
+    // 監聽對方玩家遊戲結束事件
+    socket.on('opponentGameEnd', handleOpponentGameEnd);
+
     return () => {
       socket.off('playerJoined', handlePlayerJoined);
       socket.off('roomReady', handleRoomReady);
       socket.off('hostStartTheGame', handleHostStartTheGame);
       socket.off('playerDisconnected', handlePlayerDisconnected);
       socket.off('opponentScoreUpdate', handleOpponentScoreUpdate);
+      socket.off('opponentGameEnd', handleOpponentGameEnd);
       socket.offAny();
     };
   }, [socket, dispatch, toast, session]);

@@ -1,12 +1,31 @@
 import { GAME_TIMEER } from 'contents/rules';
-import { useDispatch } from 'react-redux';
+import { useSession } from 'next-auth/react';
+import { useDispatch, useSelector } from 'react-redux';
 import { useTimer } from 'react-timer-hook';
-import { handleTimerStatus } from 'store/features/gameConfigSlice';
+import { useSocket } from 'src/app/socketIoProvider';
+import {
+  handleTimerStatus,
+  selectGameConfig,
+} from 'store/features/gameConfigSlice';
 
 const useExpiryTimer = () => {
   const time = new Date();
   time.setSeconds(time.getSeconds() + GAME_TIMEER);
   const dispatch = useDispatch();
+  const socket = useSocket();
+  const { data: session } = useSession();
+  const { gameMode, roomId } = useSelector(selectGameConfig);
+
+  const handleGameEnd = () => {
+    dispatch(handleTimerStatus({ status: 'end' }));
+    if (gameMode === 'multi' && socket && roomId && session) {
+      socket.emit('gameEnd', {
+        roomId,
+        playerId: session.id || session.profileId,
+        playerName: session.user?.name || session.name,
+      });
+    }
+  };
 
   const {
     seconds,
@@ -16,7 +35,7 @@ const useExpiryTimer = () => {
     start: timerStart,
   } = useTimer({
     expiryTimestamp: time,
-    onExpire: () => dispatch(handleTimerStatus({ status: 'end' })),
+    onExpire: handleGameEnd,
     autoStart: false,
   });
 
