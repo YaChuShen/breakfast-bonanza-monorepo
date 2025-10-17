@@ -22,6 +22,7 @@ app.get("/test", (req, res) => {
 });
 
 app.get("/health", (req, res) => {
+  console.log("health check");
   res.json({
     status: "healthy",
     uptime: process.uptime(),
@@ -193,13 +194,11 @@ io.on("connection", (socket) => {
       socket.data.roomId = roomId;
       userRooms.set(socket.user.id, roomId);
 
-      socket
-        .to(roomId)
-        .emit("playerJoined", {
-          playerId: socket.user.id,
-          playerName: socket.user.name,
-          playerEmail: socket.user.email,
-        });
+      socket.to(roomId).emit("playerJoined", {
+        playerId: socket.user.id,
+        playerName: socket.user.name,
+        playerEmail: socket.user.email,
+      });
       socket.emit("joinedRoom", { roomId });
 
       if (rooms[roomId].players.length === 2) {
@@ -217,12 +216,10 @@ io.on("connection", (socket) => {
   });
 
   socket.on("playerReady", (roomId) => {
-    socket
-      .to(roomId)
-      .emit("opponentReady", {
-        playerId: socket.user.id,
-        playerName: socket.user.name,
-      });
+    socket.to(roomId).emit("opponentReady", {
+      playerId: socket.user.id,
+      playerName: socket.user.name,
+    });
   });
 
   socket.on("gameStart", (roomId) => io.to(roomId).emit("hostStartTheGame"));
@@ -251,13 +248,11 @@ io.on("connection", (socket) => {
         console.error("Invalid game end data:", { roomId });
         return;
       }
-      socket
-        .to(roomId)
-        .emit("opponentGameEnd", {
-          playerId: socket.user.id,
-          playerName: socket.user.name,
-          timestamp: new Date().toISOString(),
-        });
+      socket.to(roomId).emit("opponentGameEnd", {
+        playerId: socket.user.id,
+        playerName: socket.user.name,
+        timestamp: new Date().toISOString(),
+      });
     } catch (e) {
       console.error("gameEnd error:", e);
     }
@@ -294,13 +289,11 @@ io.on("connection", (socket) => {
         delete roomHosts[roomId];
       }
 
-      socket
-        .to(roomId)
-        .emit("playerDisconnected", {
-          playerId: socket.user.id,
-          playerName: socket.user.name,
-          isHostDisconnected,
-        });
+      socket.to(roomId).emit("playerDisconnected", {
+        playerId: socket.user.id,
+        playerName: socket.user.name,
+        isHostDisconnected,
+      });
 
       userRooms.delete(socket.user.id);
       console.log(

@@ -24,7 +24,7 @@ export const SocketIoProvider = ({ children }: { children: ReactNode }) => {
         const socketUrl =
           process.env.NODE_ENV === 'production'
             ? process.env.NEXT_PUBLIC_SOCKET_URL
-            : process.env.NEXT_PUBLIC_SOCKET_URL_LOCAL;
+            : 'http://15.168.237.26:3001';
 
         if (!socketUrl) {
           console.error('Socket URL not configured');
@@ -33,7 +33,7 @@ export const SocketIoProvider = ({ children }: { children: ReactNode }) => {
 
         // 創建 Socket 連線
         const socket = connectSocket(session, socketUrl);
-
+        console.log('socket', socket);
         // 添加連線超時處理
         const connectWithTimeout = () => {
           return new Promise((resolve, reject) => {
