@@ -2,45 +2,57 @@ name: Deploy to EC2
 
 on:
   push:
-    branches: [ "feat_add_ec2_redis" ]
+    branches: [ feat_add_ec2_redis ]
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install rsync
-        run: sudo apt-get update && sudo apt-get install -y rsync
+      - name: Start ssh-agent (use private key from secret)
+        uses: webfactory/ssh-agent@v0.8.1
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Prepare SSH key
+      - name: Deploy to EC2 (write .env, pull, install, pm2 restart)
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          PORT: ${{ secrets.PORT }}
+          CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+          # 如果你還有其他 env var 要傳，這裡加就好
         run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+          echo "Deploying to $EC2_USER@$EC2_HOST ..."
 
-      - name: Sync code to EC2
-        run: |
-          rsync -avz --delete --exclude node_modules --exclude .git ./ ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ secrets.EC2_PATH }}
-
-      - name: Write .env on remote
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          cat > ${{ secrets.EC2_PATH }}/apps/socket-server/.env << ENV_EOF
-PORT=${{ secrets.PORT }}
+          # 1) 使用 ssh 把 .env 檔案寫到遠端路徑（範例路徑，請改成你的專案路徑）
+          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "mkdir -p ~/breakfast-bonanza/apps/socket-server"
+          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST "cat > ~/breakfast-bonanza/apps/socket-server/.env" <<EOF
+PORT=$PORT
 NODE_ENV=production
-CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
-REDIS_URL=${{ secrets.REDIS_URL }}
-ENV_EOF
-          EOF
+CORS_ORIGIN=$CORS_ORIGIN
+REDIS_URL=$REDIS_URL
+EOF
 
-      - name: Remote install & restart via pm2
-        run: |
-          ssh -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          set -e
-          cd ${{ secrets.EC2_PATH }}/apps/socket-server
-          npm ci --production
-          pm2 start ./ecosystem.config.js --env production || pm2 reload ecosystem.config.js --env production
-          pm2 save
-          EOF
+          # 2) 在遠端拉最新程式、安裝並 restart pm2
+          ssh -o StrictHostKeyChecking=no $EC2_USER@$EC2_HOST <<'REMOTE'
+            set -e
+            cd ~/breakfast-bonanza/apps/socket-server || exit 1
+            # 確保你在遠端有設定好 repo remote/origin 與 branch
+            git fetch --all
+            git reset --hard origin/main
+
+            # 安裝 production 依賴（根據你的專案調整）
+            npm ci --production || npm install --production
+
+            # 使用 pm2 重新啟動（如有 ecosystem.config.js 更好）
+            pm2 restart socket-server || pm2 start ecosystem.config.js --env production || pm2 start server.js --name socket-server --env production
+            pm2 save
+            echo "REMOTE DEPLOY OK"
+          REMOTE
+
+          echo "Deploy script finished."
+        shell: bash
