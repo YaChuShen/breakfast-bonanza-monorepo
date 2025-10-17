@@ -3,7 +3,6 @@ name: Deploy to EC2
 on:
   push:
     branches: [ "feat_add_ec2_redis" ]
-
 jobs:
   deploy:
     runs-on: ubuntu-latest
