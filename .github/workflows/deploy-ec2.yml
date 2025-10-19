@@ -30,11 +30,11 @@ jobs:
           mkdir -p tmp_deploy
           # Create .env file on the runner using the env vars above
           cat > tmp_deploy/.env <<ENV
-PORT=${PORT}
-NODE_ENV=production
-CORS_ORIGIN=${CORS_ORIGIN}
-REDIS_URL=${REDIS_URL}
-ENV
+          PORT=${PORT}
+          NODE_ENV=production
+          CORS_ORIGIN=${CORS_ORIGIN}
+          REDIS_URL=${REDIS_URL}
+          ENV
 
           echo ".env created; copying to ${EC2_USER}@${EC2_HOST}..."
           # ensure remote dir exists
