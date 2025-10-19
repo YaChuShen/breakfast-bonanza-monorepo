@@ -31,17 +31,17 @@ jobs:
 
           # Create .env file on the runner using the env vars above
           cat > tmp_deploy/.env <<ENV
-PORT=${PORT}
+PORT=${{ secrets.EC2_HOST }}
 NODE_ENV=production
-CORS_ORIGIN=${CORS_ORIGIN}
-REDIS_URL=${REDIS_URL}
+CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
+REDIS_URL=${{ secrets.REDIS_URL }}
 ENV
 
           echo ".env created; copying to ${EC2_USER}@${EC2_HOST}..."
           # ensure remote dir exists
-          ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "mkdir -p ~/breakfast-bonanza/apps/socket-server"
+          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p ~/breakfast-bonanza/apps/socket-server"
           # copy the file
-          scp -o StrictHostKeyChecking=no tmp_deploy/.env ${EC2_USER}@${EC2_HOST}:~/breakfast-bonanza/apps/socket-server/.env
+          scp -o StrictHostKeyChecking=no tmp_deploy/.env ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/breakfast-bonanza/apps/socket-server/.env
 
       - name: Pull, install and restart on remote (pm2)
         env:
