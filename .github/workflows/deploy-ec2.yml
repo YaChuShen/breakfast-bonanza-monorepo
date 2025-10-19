@@ -16,7 +16,7 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-      - name: Create .env locally and copy to EC2
+            - name: Create .env locally and copy to EC2
         env:
           EC2_HOST: ${{ secrets.EC2_HOST }}
           EC2_USER: ${{ secrets.EC2_USER }}
@@ -28,20 +28,19 @@ jobs:
           echo "Preparing local .env file..."
           rm -rf tmp_deploy || true
           mkdir -p tmp_deploy
-
           # Create .env file on the runner using the env vars above
           cat > tmp_deploy/.env <<ENV
-PORT=${{ secrets.EC2_HOST }}
+PORT=${PORT}
 NODE_ENV=production
-CORS_ORIGIN=${{ secrets.CORS_ORIGIN }}
-REDIS_URL=${{ secrets.REDIS_URL }}
+CORS_ORIGIN=${CORS_ORIGIN}
+REDIS_URL=${REDIS_URL}
 ENV
 
           echo ".env created; copying to ${EC2_USER}@${EC2_HOST}..."
           # ensure remote dir exists
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} "mkdir -p ~/breakfast-bonanza/apps/socket-server"
+          ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "mkdir -p ~/breakfast-bonanza/apps/socket-server"
           # copy the file
-          scp -o StrictHostKeyChecking=no tmp_deploy/.env ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:~/breakfast-bonanza/apps/socket-server/.env
+          scp -o StrictHostKeyChecking=no tmp_deploy/.env ${EC2_USER}@${EC2_HOST}:~/breakfast-bonanza/apps/socket-server/.env
 
       - name: Pull, install and restart on remote (pm2)
         env:
