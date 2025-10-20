@@ -1,0 +1,68 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches: [feat_add_ec2_redis]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start ssh-agent with private key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+
+      - name: Create .env locally and copy to EC2
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          PORT: ${{ secrets.PORT }}
+          CORS_ORIGIN: ${{ secrets.CORS_ORIGIN }}
+          REDIS_URL: ${{ secrets.REDIS_URL }}
+        run: |
+          set -e
+          echo "Preparing local .env file..."
+          rm -rf tmp_deploy || true
+          mkdir -p tmp_deploy
+          # Create .env file on the runner using the env vars above
+          cat > tmp_deploy/.env <<ENV
+          PORT=${PORT}
+          NODE_ENV=production
+          CORS_ORIGIN=${CORS_ORIGIN}
+          REDIS_URL=${REDIS_URL}
+          ENV
+
+          echo ".env created; copying to ${EC2_USER}@${EC2_HOST}..."
+          # ensure remote dir exists
+          ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} "mkdir -p ~/breakfast-bonanza/apps/socket-server"
+          # copy the file
+          scp -o StrictHostKeyChecking=no tmp_deploy/.env ${EC2_USER}@${EC2_HOST}:~/breakfast-bonanza/apps/socket-server/.env
+
+      - name: Pull, install and restart on remote (pm2)
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+        run: |
+          set -e
+          echo "Running remote deploy steps on ${EC2_USER}@${EC2_HOST}..."
+          ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} '
+            set -e
+            cd ~/breakfast-bonanza/apps/socket-server || exit 1
+            # make sure we have the latest code from origin/main
+            git fetch --all
+            git reset --hard origin/main
+
+            # install production deps (adjust if you use yarn/pnpm)
+            if command -v npm >/dev/null 2>&1; then
+              npm ci --production || npm install --production
+            fi
+
+            # restart using pm2 (try restart, fallback to start)
+            pm2 restart socket-server || pm2 start ecosystem.config.js --env production || pm2 start server.js --name socket-server --env production
+            pm2 save
+            echo "Remote deploy finished."
+          '
