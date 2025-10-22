@@ -9,14 +9,26 @@ app.set("trust proxy", 1);
 app.use(express.json());
 
 let redisConnected = false;
+let redisClient = null; // 全局 Redis client
 
 // simple health endpoints
-app.get("/test", (req, res) => {
+app.get("/test", async (req, res) => {
+  let clientsCount = 0;
+  try {
+    if (redisClient) {
+      const rooms = await redisClient.keys("room:*");
+      clientsCount = rooms.length;
+    }
+  } catch (e) {
+    console.error("Error getting rooms count:", e);
+  }
+
   res.json({
     status: "OK",
     message: "Socket server is running",
     timestamp: new Date().toISOString(),
     connectedClients: io ? io.engine.clientsCount : 0,
+    roomsCount: clientsCount,
     redisConnected,
   });
 });
@@ -49,25 +61,22 @@ const io = new Server(server, {
 });
 
 /* ---------------------------
-   Optional Redis adapter
-   - If REDIS_URL exists, try to connect and attach adapter.
-   - If fails, server still runs in single-node mode.
+   Redis Setup - 必須成功連接
    --------------------------- */
-async function tryAttachRedisAdapter() {
+async function setupRedis() {
   const REDIS_URL = process.env.REDIS_URL;
   if (!REDIS_URL) {
-    console.log(
-      "⚠️ REDIS_URL not set - running single-node Socket.IO (no adapter)."
-    );
-    return;
+    throw new Error("❌ REDIS_URL is required for room management!");
   }
 
   try {
     const { createClient } = require("redis");
     const { createAdapter } = require("@socket.io/redis-adapter");
 
+    // 創建 Redis clients
     const pub = createClient({ url: REDIS_URL });
     const sub = pub.duplicate();
+    redisClient = createClient({ url: REDIS_URL }); // 用於資料儲存的 client
 
     pub.on("error", (e) => {
       console.error("Redis pub error:", e);
@@ -77,21 +86,107 @@ async function tryAttachRedisAdapter() {
       console.error("Redis sub error:", e);
       redisConnected = false;
     });
+    redisClient.on("error", (e) => {
+      console.error("Redis client error:", e);
+      redisConnected = false;
+    });
 
+    // 連接所有 clients
     await pub.connect();
     await sub.connect();
+    await redisClient.connect();
 
     io.adapter(createAdapter(pub, sub));
     redisConnected = true;
+    console.log("✅ Redis connected successfully!");
     console.log("✅ Redis adapter attached (pub/sub connected).");
   } catch (err) {
     redisConnected = false;
-    console.error("Failed to attach Redis adapter:", err);
+    console.error("❌ Failed to connect Redis:", err);
+    throw err;
   }
 }
 
 /* ---------------------------
-   Authentication middleware (same as original)
+   Redis Helper Functions - 房間管理
+   --------------------------- */
+
+// 生成房間 ID
+function generateRoomId() {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+// 取得房間資料
+async function getRoom(roomId) {
+  try {
+    const data = await redisClient.get(`room:${roomId}`);
+    return data ? JSON.parse(data) : null;
+  } catch (e) {
+    console.error("getRoom error:", e);
+    return null;
+  }
+}
+
+// 儲存房間資料
+async function setRoom(roomId, roomData) {
+  try {
+    await redisClient.set(
+      `room:${roomId}`,
+      JSON.stringify(roomData),
+      { EX: 3600 } // 1小時後自動過期
+    );
+    return true;
+  } catch (e) {
+    console.error("setRoom error:", e);
+    return false;
+  }
+}
+
+// 刪除房間
+async function deleteRoom(roomId) {
+  try {
+    await redisClient.del(`room:${roomId}`);
+    return true;
+  } catch (e) {
+    console.error("deleteRoom error:", e);
+    return false;
+  }
+}
+
+// 取得用戶所在房間
+async function getUserRoom(userId) {
+  try {
+    return await redisClient.get(`user:${userId}:room`);
+  } catch (e) {
+    console.error("getUserRoom error:", e);
+    return null;
+  }
+}
+
+// 設定用戶所在房間
+async function setUserRoom(userId, roomId) {
+  try {
+    await redisClient.set(`user:${userId}:room`, roomId, { EX: 3600 });
+    return true;
+  } catch (e) {
+    console.error("setUserRoom error:", e);
+    return false;
+  }
+}
+
+// 刪除用戶房間記錄
+async function deleteUserRoom(userId) {
+  try {
+    await redisClient.del(`user:${userId}:room`);
+    return true;
+  } catch (e) {
+    console.error("deleteUserRoom error:", e);
+    return false;
+  }
+}
+
+/* ---------------------------
+   Authentication middleware
    --------------------------- */
 io.use((socket, next) => {
   const userId = socket.handshake.auth?.token;
@@ -108,31 +203,20 @@ io.use((socket, next) => {
 });
 
 /* ---------------------------
-   In-memory rooms (keeps original logic)
-   NOTE: When running multiple nodes this will NOT be synchronized.
-         Adapter only syncs socket.io events; for full state sync, persist rooms to Redis/DB.
-   --------------------------- */
-const rooms = {};
-const userRooms = new Map();
-const roomHosts = {};
-
-function generateRoomId() {
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
-
-/* ---------------------------
-   Socket event handlers (keeps original behavior)
+   Socket event handlers - 使用 Redis
    --------------------------- */
 io.on("connection", (socket) => {
   socket.on("error", (err) => console.error("Socket error:", err));
   socket.on("connect_error", (err) => console.error("Connect error:", err));
 
-  socket.on("createRoom", () => {
+  // 創建房間
+  socket.on("createRoom", async () => {
     try {
       const roomId = generateRoomId();
-      rooms[roomId] = {
+      const roomData = {
         hostId: socket.user.id,
         hostName: socket.user.name,
+        hostEmail: socket.user.email,
         players: [
           {
             id: socket.user.id,
@@ -141,20 +225,19 @@ io.on("connection", (socket) => {
             ready: false,
           },
         ],
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         status: "waiting",
       };
 
-      socket.join(roomId);
+      await setRoom(roomId, roomData);
+      await setUserRoom(socket.user.id, roomId);
+
+      // 等待 socket 加入房間（使用 Redis adapter 時是異步的）
+      await socket.join(roomId);
       socket.data.roomId = roomId;
-      userRooms.set(socket.user.id, roomId);
-      roomHosts[roomId] = {
-        hostId: socket.user.id,
-        hostName: socket.user.name,
-        hostEmail: socket.user.email,
-      };
 
       socket.emit("roomCreated", { roomId });
+      console.log(`✅ Room created: ${roomId} by ${socket.user.name}`);
     } catch (e) {
       console.error("createRoom error:", e);
       socket.emit("createRoomError", {
@@ -163,20 +246,22 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("joinRoom", ({ roomId }) => {
+  // 加入房間
+  socket.on("joinRoom", async ({ roomId }) => {
     try {
-      if (!rooms[roomId]) {
+      const room = await getRoom(roomId);
+
+      if (!room) {
         socket.emit("joinRoomError", { message: "room not found" });
         return;
       }
-      if (rooms[roomId].players.length >= 2) {
+
+      if (room.players.length >= 2) {
         socket.emit("joinRoomError", { message: "room is full" });
         return;
       }
 
-      const existingPlayer = rooms[roomId].players.find(
-        (p) => p.id === socket.user.id
-      );
+      const existingPlayer = room.players.find((p) => p.id === socket.user.id);
       if (existingPlayer) {
         socket.emit("joinRoomError", {
           message: "you are already in the room",
@@ -184,37 +269,51 @@ io.on("connection", (socket) => {
         return;
       }
 
-      rooms[roomId].players.push({
+      // 加入玩家
+      room.players.push({
         id: socket.user.id,
         name: socket.user.name,
         email: socket.user.email,
         ready: false,
       });
-      socket.join(roomId);
-      socket.data.roomId = roomId;
-      userRooms.set(socket.user.id, roomId);
 
+      // 如果滿員，更新狀態
+      if (room.players.length === 2) {
+        room.status = "ready";
+      }
+
+      await setRoom(roomId, room);
+      await setUserRoom(socket.user.id, roomId);
+
+      // 等待 socket 加入房間（使用 Redis adapter 時是異步的）
+      await socket.join(roomId);
+      socket.data.roomId = roomId;
+
+      // 確保 join 完成後再發送事件
       socket.to(roomId).emit("playerJoined", {
         playerId: socket.user.id,
         playerName: socket.user.name,
         playerEmail: socket.user.email,
       });
+
       socket.emit("joinedRoom", { roomId });
 
-      if (rooms[roomId].players.length === 2) {
-        rooms[roomId].status = "ready";
+      if (room.players.length === 2) {
         io.to(roomId).emit("roomReady", {
-          players: rooms[roomId].players,
+          players: room.players,
           canStart: true,
-          hostId: rooms[roomId].hostId,
+          hostId: room.hostId,
         });
       }
+
+      console.log(`✅ Player ${socket.user.name} joined room: ${roomId}`);
     } catch (e) {
       console.error("joinRoom error:", e);
       socket.emit("joinRoomError", { message: "加入房間失敗，請稍後再試" });
     }
   });
 
+  // 玩家準備
   socket.on("playerReady", (roomId) => {
     socket.to(roomId).emit("opponentReady", {
       playerId: socket.user.id,
@@ -222,8 +321,10 @@ io.on("connection", (socket) => {
     });
   });
 
+  // 遊戲開始
   socket.on("gameStart", (roomId) => io.to(roomId).emit("hostStartTheGame"));
 
+  // 分數更新
   socket.on("scoreUpdate", ({ roomId, score }) => {
     try {
       if (!roomId || typeof score !== "number") {
@@ -242,6 +343,7 @@ io.on("connection", (socket) => {
     }
   });
 
+  // 遊戲結束
   socket.on("gameEnd", ({ roomId }) => {
     try {
       if (!roomId) {
@@ -258,7 +360,8 @@ io.on("connection", (socket) => {
     }
   });
 
-  socket.on("disconnect", () => {
+  // 斷線處理
+  socket.on("disconnect", async () => {
     try {
       const roomId = socket.data.roomId;
       if (!roomId) {
@@ -266,40 +369,37 @@ io.on("connection", (socket) => {
         return;
       }
 
-      let isHostDisconnected = false;
-      if (rooms[roomId] && rooms[roomId].hostId === socket.user.id) {
-        isHostDisconnected = true;
-        console.log("Host disconnected, room:", roomId);
+      const room = await getRoom(roomId);
+      if (!room) {
+        console.log("Room not found in Redis:", roomId);
+        await deleteUserRoom(socket.user.id);
+        return;
       }
 
-      if (rooms[roomId]) {
-        rooms[roomId].players = rooms[roomId].players.filter(
-          (p) => p.id !== socket.user.id
-        );
-        if (rooms[roomId].players.length === 0) {
-          delete rooms[roomId];
-          delete roomHosts[roomId];
-        }
+      const isHostDisconnected = room.hostId === socket.user.id;
+      console.log(
+        `Player ${socket.user.name} disconnected from room: ${roomId}`
+      );
+
+      // 移除玩家
+      room.players = room.players.filter((p) => p.id !== socket.user.id);
+
+      // 如果房間沒人了，刪除房間
+      if (room.players.length === 0) {
+        await deleteRoom(roomId);
+        console.log(`Room ${roomId} deleted (empty)`);
+      } else {
+        await setRoom(roomId, room);
       }
 
-      if (
-        isHostDisconnected &&
-        (!rooms[roomId] || rooms[roomId].players.length === 0)
-      ) {
-        delete roomHosts[roomId];
-      }
-
+      // 通知其他玩家
       socket.to(roomId).emit("playerDisconnected", {
         playerId: socket.user.id,
         playerName: socket.user.name,
         isHostDisconnected,
       });
 
-      userRooms.delete(socket.user.id);
-      console.log(
-        "Current userRooms after cleanup:",
-        Object.fromEntries(userRooms)
-      );
+      await deleteUserRoom(socket.user.id);
     } catch (e) {
       console.error("disconnect error:", e);
     }
@@ -312,20 +412,27 @@ io.on("connection", (socket) => {
 const PORT = process.env.PORT || 3001;
 
 (async () => {
-  await tryAttachRedisAdapter(); // optional
-  server.listen(PORT, () => {
-    console.log(`✅ Socket server running on port ${PORT}`);
-    console.log(`Test the server at: http://localhost:${PORT}/test`);
-    if (process.env.REDIS_URL)
-      console.log("Using REDIS_URL (adapter attempt).");
-  });
+  try {
+    await setupRedis(); // Redis 必須成功連接
+    server.listen(PORT, () => {
+      console.log(`✅ Socket server running on port ${PORT}`);
+      console.log(`Test the server at: http://localhost:${PORT}/test`);
+    });
+  } catch (err) {
+    console.error("❌ Failed to start server:", err);
+    process.exit(1);
+  }
 })();
 
 /* Graceful shutdown */
 function shutdown(sig) {
   console.log(`${sig} received, shutting down...`);
-  server.close(() => {
+  server.close(async () => {
     console.log("HTTP server closed.");
+    if (redisClient) {
+      await redisClient.quit();
+      console.log("Redis client closed.");
+    }
     process.exit(0);
   });
 }
