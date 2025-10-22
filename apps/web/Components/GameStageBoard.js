@@ -18,29 +18,37 @@ import Loading from './Loading';
 import ReadyStartBoard from './ReadyStartBoard';
 import ScoreSection from './ScoreSection';
 
-const GameStageBoard = ({ session, score, isLevel2 }) => {
+const GameStageBoard = ({ session, score, isLevel2, isFinishedTour }) => {
   const { seconds, minutes, isRunning, timerStart } = useExpiryTimer();
-  const { timerStatus, roomId } = useSelector(selectGameConfig);
+  const { timerStatus, roomId, hostId } = useSelector(selectGameConfig);
   const [isLoading, setIsLoading] = useState(true);
   const dispatch = useDispatch();
+
+  console.log('isFinishedTour', isFinishedTour);
+  console.log('hostId', hostId);
 
   useEffect(() => {
     setIsLoading(false);
   }, []);
 
   useEffect(() => {
-    if (roomId) {
-      dispatch(handleTimerStatus({ status: 'modeSelection' }));
-    }
     if (timerStatus !== 'multiPlayerReady') {
-      const initialTimerStatus = sessionStorage.getItem(TOUR_SESSION_KEY)
-        ? 'modeSelection'
-        : 'initial';
-
-      console.log('initialTimerStatus:', initialTimerStatus);
-      dispatch(handleTimerStatus({ status: initialTimerStatus }));
+      if (isFinishedTour || sessionStorage.getItem(TOUR_SESSION_KEY)) {
+        dispatch(handleTimerStatus({ status: 'modeSelection' }));
+      } else {
+        dispatch(handleTimerStatus({ status: 'initial' }));
+      }
     }
-  }, []);
+    if (roomId && hostId === session?.id) {
+      dispatch(handleTimerStatus({ status: 'waitingForPlayer' }));
+    }
+    if (roomId && hostId === null) {
+      dispatch(handleTimerStatus({ status: 'multiPlayerOptions' }));
+    }
+  }, [isFinishedTour]);
+
+  console.log('roomId', roomId);
+  console.log('hostId', hostId);
 
   // multi player game start
   useEffect(() => {

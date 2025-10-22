@@ -82,6 +82,14 @@ class GraphQLClient {
           id
           email
           islevel2
+          isfinishedtour
+          highest_score
+          latest_score
+          total_games
+          total_score
+          average_score
+          lastplaytime
+          created_at
         }
       }
     `;

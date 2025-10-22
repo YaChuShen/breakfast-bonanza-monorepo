@@ -24,10 +24,12 @@ const HomePageProvider = ({ dbData, profileId }) => {
   const methods = useForm();
   const { data: session } = useSession();
   const currentData = useSelector(selectCustomer);
-  const isLevel2 = dbData?.isLevel2;
+  const isLevel2 = dbData?.islevel2;
   const dispatch = useDispatch();
   const socket = useSocket();
   const toast = useToast();
+
+  console.log('dbData', dbData);
 
   // 處理分數同步到多人遊戲
   useScoreSync();
@@ -188,6 +190,7 @@ const HomePageProvider = ({ dbData, profileId }) => {
         profileId={profileId}
         isLevel2={isLevel2}
         methods={methods}
+        isFinishedTour={dbData?.isfinishedtour}
       />
     </FormProvider>
   );
