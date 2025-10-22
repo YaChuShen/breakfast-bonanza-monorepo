@@ -21,12 +21,10 @@ export const SocketIoProvider = ({ children }: { children: ReactNode }) => {
       if (!session) return;
 
       try {
-        // const socketUrl =
-        //   process.env.NODE_ENV === 'production'
-        //     ? process.env.NEXT_PUBLIC_SOCKET_URL
-        //     : 'http://56.155.163.184:3001';
-
-        const socketUrl = process.env.NEXT_PUBLIC_SOCKET_URL;
+        const socketUrl =
+          process.env.NODE_ENV === 'production'
+            ? process.env.NEXT_PUBLIC_SOCKET_URL
+            : 'http://56.155.163.184:3001';
 
         if (!socketUrl) {
           console.error('Socket URL not configured');
