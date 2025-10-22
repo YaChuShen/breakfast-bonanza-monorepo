@@ -29,9 +29,7 @@ const HomePageProvider = ({ dbData, profileId }) => {
   const socket = useSocket();
   const toast = useToast();
 
-  console.log('dbData', dbData);
-
-  // 處理分數同步到多人遊戲
+  // sync score to multiplayer game
   useScoreSync();
 
   useEffect(() => {
@@ -162,12 +160,10 @@ const HomePageProvider = ({ dbData, profileId }) => {
     socket.on('hostStartTheGame', handleHostStartTheGame);
     socket.on('playerDisconnected', handlePlayerDisconnected);
 
-    // 特別檢查 opponentScoreUpdate 事件
     socket.on('opponentScoreUpdate', (data) => {
       handleOpponentScoreUpdate(data);
     });
 
-    // 監聽對方玩家遊戲結束事件
     socket.on('opponentGameEnd', handleOpponentGameEnd);
 
     return () => {
