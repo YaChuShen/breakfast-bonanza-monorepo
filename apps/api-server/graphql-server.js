@@ -1,5 +1,5 @@
 // Express + GraphQL Server (強大版本)
-import { LEVEL2_SCORE } from "@breakfast-bonanza/shared/rules";
+import { LEVEL2_SCORE } from "@breakfast-bonanza/shared";
 import { createClient } from "@supabase/supabase-js";
 import bcrypt from "bcrypt";
 import cors from "cors";

@@ -8,14 +8,20 @@ import MobileAlertPage from 'Components/MobileAlertPage';
 import Table from 'Components/Table';
 import Tour from 'Components/Tour';
 
-function HomePage({ session, currentData, dbData, profileId, isLevel2 }) {
+function HomePage({
+  session,
+  currentData,
+  profileId,
+  isLevel2,
+  isFinishedTour,
+}) {
   return (
     <>
       <Media greaterThanOrEqual="md">
         <Tour profileId={profileId}>
           <GameStageBoard
             session={session}
-            isTour={dbData?.isTour}
+            isFinishedTour={isFinishedTour}
             score={currentData?.score}
             isLevel2={isLevel2}
           />

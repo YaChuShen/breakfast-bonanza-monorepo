@@ -20,6 +20,7 @@ export const gameConfigSlice = createSlice({
     },
     handleTimerStatus: (state, action) => {
       const { status, roomId } = action.payload;
+      console.log('status', status);
       state.timerStatus = status;
       if (roomId) {
         state.roomId = roomId;

@@ -16,10 +16,12 @@ import ReturnButton from './ReturnButton';
 import ReturnText from './ReturnText';
 import StartButton from './StartButton';
 
+import { useToast } from '@chakra-ui/react';
 const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
   const dispatch = useDispatch();
   const socket = useSocket();
   const { roomId, hostId, timerStatus } = useSelector(selectGameConfig);
+  const toast = useToast();
 
   const isHost =
     session &&
@@ -30,6 +32,13 @@ const ReadyStartBoard = ({ session, timerStart, gameMode = 'single' }) => {
     if (roomId) {
       navigator.clipboard?.writeText(roomId);
     }
+    toast({
+      title: 'Room code copied to clipboard',
+      description: `Room code: ${roomId}`,
+      status: 'success',
+      duration: 3000,
+      isClosable: true,
+    });
   };
   return (
     <Board py={{ md: '2em', xl: '6em' }} px="2em" pos="relative">

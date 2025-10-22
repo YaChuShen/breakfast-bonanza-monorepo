@@ -9,6 +9,7 @@
     "start:graphql": "node graphql-server.js"
   },
   "dependencies": {
+    "@breakfast-bonanza/shared": "*",
     "@supabase/supabase-js": "^2.56.0",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
