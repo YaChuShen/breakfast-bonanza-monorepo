@@ -24,7 +24,7 @@ const HomePageProvider = ({ dbData, profileId }) => {
   const methods = useForm();
   const { data: session } = useSession();
   const currentData = useSelector(selectCustomer);
-  const isLevel2 = dbData?.islevel2;
+  const isLevel2 = true;
   const dispatch = useDispatch();
   const socket = useSocket();
   const toast = useToast();
