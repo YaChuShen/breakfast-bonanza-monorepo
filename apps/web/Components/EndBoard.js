@@ -111,7 +111,7 @@ const EndBoard = ({ score, isRunning, session, isLevel2, ...props }) => {
           fontWeight={700}
         >
           <TotalScore
-            showLevelUpMessege={showLevelUpMessege}
+            showLevelUpMessege={isMultiPlayer ? false : showLevelUpMessege}
             score={score}
             isEnterLeaderboard={isTopFive}
             isLogin={session?.profileId}
