@@ -24,7 +24,7 @@ export const SocketIoProvider = ({ children }: { children: ReactNode }) => {
         const socketUrl =
           process.env.NODE_ENV === 'production'
             ? process.env.NEXT_PUBLIC_SOCKET_URL
-            : 'http://56.155.163.184:3001';
+            : process.env.NEXT_PUBLIC_SOCKET_URL_LOCAL || 'http://localhost:3001';
 
         if (!socketUrl) {
           console.error('Socket URL not configured');
