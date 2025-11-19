@@ -206,6 +206,9 @@ io.use((socket, next) => {
    Socket event handlers - 使用 Redis
    --------------------------- */
 io.on("connection", (socket) => {
+  const currentConnections = io.engine.clientsCount;
+  console.log(`🔌 New connection: ${socket.user.name} (${socket.user.id}) | Total: ${currentConnections}`);
+
   socket.on("error", (err) => console.error("Socket error:", err));
   socket.on("connect_error", (err) => console.error("Connect error:", err));
 
@@ -362,6 +365,9 @@ io.on("connection", (socket) => {
 
   // 斷線處理
   socket.on("disconnect", async () => {
+    const currentConnections = io.engine.clientsCount;
+    console.log(`🔌 Disconnected: ${socket.user.name} (${socket.user.id}) | Total: ${currentConnections}`);
+
     try {
       const roomId = socket.data.roomId;
       if (!roomId) {

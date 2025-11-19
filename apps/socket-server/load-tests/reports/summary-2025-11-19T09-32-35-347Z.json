@@ -1,0 +1,24 @@
+{
+  "summary": {
+    "peak_concurrent_connections": 3000,
+    "total_connections_tested": 3000,
+    "success_rate": "100.00%",
+    "avg_latency_ms": 244.38,
+    "p95_latency_ms": 1158,
+    "p99_latency_ms": 2151,
+    "rooms_created": 1500,
+    "total_errors": 0,
+    "system_broke": false,
+    "breaking_point_connections": null
+  },
+  "baseline": {
+    "connections": 500,
+    "avg_latency": 143.9,
+    "success_rate": "100.00%"
+  },
+  "stress": {
+    "peak_connections": 3000,
+    "avg_latency": 244.38,
+    "success_rate": "100.00%"
+  }
+}
