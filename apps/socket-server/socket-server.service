@@ -1,0 +1,20 @@
+[Unit]
+Description=Breakfast Bonanza Socket.IO Server
+After=network.target
+
+[Service]
+Type=simple
+User=ec2-user
+WorkingDirectory=/home/ec2-user/breakfast-bonanza-monorepo/apps/socket-server
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=10
+StandardOutput=append:/var/log/socket-server.log
+StandardError=append:/var/log/socket-server-error.log
+
+# Environment variables
+Environment=NODE_ENV=production
+EnvironmentFile=/home/ec2-user/breakfast-bonanza-monorepo/apps/socket-server/.env
+
+[Install]
+WantedBy=multi-user.target
